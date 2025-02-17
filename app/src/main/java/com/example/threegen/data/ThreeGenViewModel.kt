@@ -127,6 +127,19 @@ class ThreeGenViewModel : ViewModel() {
         }
     }
 
+    // Update the ImageUri of a member
+    fun updateImageUri(memberId: Int, imageUri: String) {
+        Log.d("SelectMemberScreen", "From view model Updating parent ID for member with ID: $memberId to $imageUri")
+        viewModelScope.launch(Dispatchers.IO) {
+            val member1 = threeGenDao.getMemberByIdSync(memberId)
+            Log.d("SelectMemberScreen", "Member: $member1.id")
+            member1?.let {
+                it.imageUri = imageUri
+                threeGenDao.updateThreeGen(it)
+            }
+        }
+    }
+
     // Update the spouse of a member
     fun updateSpouseId(memberId: Int, spouseId: Int) {
         Log.d("SelectMemberScreen", "From view model Updating spouse ID for member with ID: $memberId to $spouseId")

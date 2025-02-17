@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import com.example.threegen.AddMember
+import com.example.threegen.HomeA
 import com.example.threegen.ListScreen
 import com.example.threegen.data.ThreeGenViewModel
 
@@ -56,5 +57,15 @@ fun HomeScreen(
         ) {
             Text(text = "View All Members")
         }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Button(
+            onClick = { navController.navigate(HomeA(id = 8)) },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(text = "Go To Home ScreenA")
+        }
+
     }
 }

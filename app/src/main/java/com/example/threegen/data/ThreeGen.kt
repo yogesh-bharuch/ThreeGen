@@ -34,7 +34,7 @@ data class ThreeGen(
     val lastName: String,
     val shortName: String,
     val town: String,
-    val imageUri: String? = null,
+    var imageUri: String? = null,
     val createdAt: Long = System.currentTimeMillis()
 )
 

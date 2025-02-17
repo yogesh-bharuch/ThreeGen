@@ -11,6 +11,7 @@ import com.example.threegen.screens.AddMemberScreen
 import com.example.threegen.screens.EditMemberScreen
 import com.example.threegen.screens.FamilyTreeScreen
 import com.example.threegen.screens.HomeScreen
+import com.example.threegen.screens.HomeScreenA
 import com.example.threegen.screens.ListMembersScreen
 import com.example.threegen.screens.MemberDetailScreen
 import com.example.threegen.screens.SelectMemberScreen
@@ -105,6 +106,17 @@ fun AppNavigation(
                 modifier = modifier
             )
         }
+
+        //HomeA
+        composable<HomeA> {
+            val arg = it.toRoute<HomeA>()
+            HomeScreenA(
+                navController = navController,
+                viewModel = viewModel,
+                modifier = modifier,
+                memberId = arg.id
+            )
+        }
     }
 }
 
@@ -114,8 +126,13 @@ fun AppNavigation(
 object Home
 
 @Serializable
-data class MemberDetail(
+data class HomeA(
     val id : Int = 1
+)
+
+@Serializable
+data class MemberDetail(
+    val id : Int = 0,
 )
 
 @Serializable
