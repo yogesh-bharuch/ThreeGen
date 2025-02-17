@@ -10,6 +10,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.threegen.MainApplication
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.lang.reflect.Member
 
 class ThreeGenViewModel : ViewModel() {
@@ -83,6 +84,35 @@ class ThreeGenViewModel : ViewModel() {
             threeGenDao.deleteThreeGen(threeGen)
         }
     }
+
+    // Update  member
+    fun updateMember(
+        memberId: Int,
+        firstName: String,
+        middleName: String,
+        lastName: String,
+        town: String,
+        shortName: String
+    ) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val member = threeGenDao.getMemberByIdSync(memberId)
+            val uniqueShortName = generateUniqueShortName(firstName, middleName, lastName, town)
+
+            Log.d("SelectMemberScreen", "Member: ${member?.firstName}")
+            val updatedMember = member?.copy(
+                firstName = firstName,
+                middleName = middleName,
+                lastName = lastName,
+                town = town,
+                shortName = uniqueShortName
+            )
+            Log.d("SelectMemberScreen", "From view model Updating member with ID: $memberId to $updatedMember")
+            if (updatedMember != null) {
+                threeGenDao.updateThreeGen(updatedMember)
+            }
+        }
+    }
+
 
     // Update the parentId of a member
     fun updateParentId(memberId: Int, parentId: Int) {

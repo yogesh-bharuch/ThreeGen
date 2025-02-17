@@ -20,7 +20,7 @@ fun HomeScreenB(
         navController.navigate(
             HomeA(retVal = "Hello from Home B"))
     })  {
-        Text("Go to Home B")
+        Text("Go to Home A")
     }
 
 
