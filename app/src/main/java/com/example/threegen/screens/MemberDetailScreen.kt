@@ -2,7 +2,10 @@ package com.example.threegen.screens
 
 import android.util.Log
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -39,7 +42,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import coil.compose.rememberAsyncImagePainter
-import com.example.threegen.MemberDetail
 import com.example.threegen.MemberTree
 import com.example.threegen.SelectParent
 import com.example.threegen.SelectSpouse
@@ -112,6 +114,7 @@ fun AddImage(navController: NavHostController,viewModel: ThreeGenViewModel,membe
     val townState = remember { mutableStateOf("") }
     var showError by remember { mutableStateOf(false) }
     val context = LocalContext.current
+    var imageUriState by remember { mutableStateOf<String?>(null) }
 
     // Update state values when member data changes
     LaunchedEffect(member) {
@@ -120,7 +123,14 @@ fun AddImage(navController: NavHostController,viewModel: ThreeGenViewModel,membe
             middleNameState.value = it.middleName
             lastNameState.value = it.lastName
             townState.value = it.town
+            imageUriState = it.imageUri
         }
+    }
+    // Image Picker Launcher
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        imageUriState = uri?.toString()
     }
 
 
@@ -129,14 +139,22 @@ fun AddImage(navController: NavHostController,viewModel: ThreeGenViewModel,membe
         horizontalArrangement = Arrangement.spacedBy(8.dp) // Optional: space between items in the row
     ) {
         // Profile Image
-        if (member?.imageUri != null) {
+        //if (member?.imageUri != null) {
+        if (imageUriState != null) {
             Image(
-                painter = rememberAsyncImagePainter(member.imageUri),
+                //painter = rememberAsyncImagePainter(member.imageUri),
+                painter = rememberAsyncImagePainter(imageUriState),
                 contentDescription = "Profile Image",
                 modifier = Modifier.size(100.dp)
+                    .clickable { imagePickerLauncher.launch("image/*") }
             )
         } else {
-            Log.d("MemberDetailScreen", "Image URI is null or invalid")
+            Icon(
+                imageVector = Icons.Default.PersonAdd,
+                contentDescription = "No Profile Image",
+                modifier = Modifier.size(100.dp)
+                    .clickable { imagePickerLauncher.launch("image/*") }
+            )
         }
 
         // Member Details
@@ -195,7 +213,9 @@ fun AddImage(navController: NavHostController,viewModel: ThreeGenViewModel,membe
                             middleNameState.value.trim(),
                             lastNameState.value.trim(),
                             townState.value.trim(),
-                            shortName = member?.shortName ?: ""
+                            shortName = member?.shortName ?: "",
+                            imageUri = imageUriState ?: ""
+
                         )
                         Toast.makeText(context, "Saved", Toast.LENGTH_SHORT).show()
                        // navController.popBackStack() // Navigate back after saving

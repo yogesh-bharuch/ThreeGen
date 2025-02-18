@@ -10,8 +10,6 @@ import androidx.lifecycle.viewModelScope
 import com.example.threegen.MainApplication
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import java.lang.reflect.Member
 
 class ThreeGenViewModel : ViewModel() {
     private val threeGenDao = MainApplication.threeGenDatabase.getThreeGenDao()
@@ -92,7 +90,8 @@ class ThreeGenViewModel : ViewModel() {
         middleName: String,
         lastName: String,
         town: String,
-        shortName: String
+        shortName: String,
+        imageUri: String
     ) {
         viewModelScope.launch(Dispatchers.IO) {
             val member = threeGenDao.getMemberByIdSync(memberId)
@@ -104,7 +103,8 @@ class ThreeGenViewModel : ViewModel() {
                 middleName = middleName,
                 lastName = lastName,
                 town = town,
-                shortName = uniqueShortName
+                shortName = uniqueShortName,
+                imageUri = imageUri
             )
             Log.d("SelectMemberScreen", "From view model Updating member with ID: $memberId to $updatedMember")
             if (updatedMember != null) {

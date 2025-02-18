@@ -157,7 +157,8 @@ fun EditMemberScreen(
                     middleNameState.value.trim(),
                     lastNameState.value.trim(),
                     townState.value.trim(),
-                    shortName = member?.shortName ?: ""
+                    shortName = member?.shortName ?: "",
+                    member?.imageUri ?: ""
                 )
                 navController.popBackStack() // Navigate back after saving
                 }
