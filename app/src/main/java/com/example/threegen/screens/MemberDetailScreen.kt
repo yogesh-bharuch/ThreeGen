@@ -40,6 +40,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -88,7 +89,8 @@ fun MemberDetailScreen(
                     navController = navController,
                     viewModel = viewModel,
                     member = member,
-                    memberId = memberId
+                    memberId = memberId,
+                    onImageClick = { uri -> zoomedImageUri = uri }
                 )
                 Spacer(modifier = Modifier.height(4.dp))
             }
@@ -161,7 +163,7 @@ fun PageHeader(member: ThreeGen?, modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun AddImage(navController: NavHostController,viewModel: ThreeGenViewModel,member: ThreeGen?,modifier: Modifier = Modifier, memberId: Int) {
+fun AddImage(navController: NavHostController, viewModel: ThreeGenViewModel, member: ThreeGen?, modifier: Modifier = Modifier, memberId: Int, onImageClick: (String) -> Unit) {
     // States for text field values
     val firstNameState = remember { mutableStateOf("") }
     val middleNameState = remember { mutableStateOf("") }
@@ -181,6 +183,7 @@ fun AddImage(navController: NavHostController,viewModel: ThreeGenViewModel,membe
             imageUriState = it.imageUri
         }
     }
+
     // Image Picker Launcher
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -188,106 +191,112 @@ fun AddImage(navController: NavHostController,viewModel: ThreeGenViewModel,membe
         imageUriState = uri?.toString()
     }
 
-
-    Row(
-        modifier = modifier.padding(0.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp) // Optional: space between items in the row
-    ) {
-        // Profile Image
-        //if (member?.imageUri != null) {
-        if (imageUriState != null) {
-            Image(
-                //painter = rememberAsyncImagePainter(member.imageUri),
-                painter = rememberAsyncImagePainter(imageUriState),
-                contentDescription = "Profile Image",
-                modifier = Modifier.size(100.dp)
-                    .clickable { imagePickerLauncher.launch("image/*") }
-            )
-        } else {
-            Icon(
-                imageVector = Icons.Default.PersonAdd,
-                contentDescription = "No Profile Image",
-                modifier = Modifier.size(100.dp)
-                    .clickable { imagePickerLauncher.launch("image/*") }
-            )
-        }
-
-        // Member Details
-        Column(
-            verticalArrangement = Arrangement.spacedBy(1.dp) // Optional: space between items in the column
+    Column(modifier = modifier.padding(0.dp)) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // Text fields for editing member details
-            OutlinedTextField(
-                value = firstNameState.value,
-                onValueChange = { firstNameState.value = it },
-                label = { Text("First Name") },
-                isError = showError && firstNameState.value.isBlank(),
-                textStyle = TextStyle().copy(fontSize = 14.sp),
-                modifier = Modifier
-                    .fillMaxWidth()
-            )
-            OutlinedTextField(
-                value = middleNameState.value,
-                onValueChange = { middleNameState.value = it },
-                label = { Text("Middle Name") },
-                isError = showError && middleNameState.value.isBlank(),
-                textStyle = TextStyle().copy(fontSize = 14.sp),
-                modifier = Modifier
-                    .fillMaxWidth()
-            )
-            OutlinedTextField(
-                value = lastNameState.value,
-                onValueChange = { lastNameState.value = it },
-                label = { Text("Last Name") },
-                isError = showError && lastNameState.value.isBlank(),
-                textStyle = TextStyle().copy(fontSize = 14.sp),
-                modifier = Modifier
-                    .fillMaxWidth()
-            )
-            OutlinedTextField(
-                value = townState.value,
-                onValueChange = { townState.value = it },
-                label = { Text("Town") },
-                isError = showError && townState.value.isBlank(),
-                textStyle = TextStyle().copy(fontSize = 14.sp),
-                modifier = Modifier
-                    .fillMaxWidth()
-            )
-            Text(text = "Short Name: ${member?.shortName ?: "N/A"}", fontSize = 10.sp)
-
-            // Save Button
-            Button(
-                onClick = {
-                    // Save the edited member details
-                    if (firstNameState.value.isBlank() || middleNameState.value.isBlank() || lastNameState.value.isBlank() || townState.value.isBlank()) {
-                        showError = true
-                    } else {
-                        showError = false
-                        viewModel.updateMember(
-                            memberId,
-                            firstNameState.value.trim(),
-                            middleNameState.value.trim(),
-                            lastNameState.value.trim(),
-                            townState.value.trim(),
-                            shortName = member?.shortName ?: "",
-                            imageUri = imageUriState ?: ""
-
-                        )
-                        Toast.makeText(context, "Saved", Toast.LENGTH_SHORT).show()
-                       // navController.popBackStack() // Navigate back after saving
-                    }
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(2.dp)
-            ) {
-                Text(text = "Save")
+            // Profile Image
+            if (imageUriState != null) {
+                Image(
+                    painter = rememberAsyncImagePainter(imageUriState),
+                    contentDescription = "Profile Image",
+                    modifier = Modifier
+                        .size(100.dp)
+                        .clickable { imageUriState?.let { uri -> onImageClick(uri) } }
+                )
+            } else {
+                Icon(
+                    imageVector = Icons.Default.PersonAdd,
+                    contentDescription = "No Profile Image",
+                    modifier = Modifier
+                        .size(100.dp)
+                        .clickable { imagePickerLauncher.launch("image/*") }
+                )
             }
-            //Text(text = "Town: ${member?.town ?: "N/A"}")
-            //Text(text = "Short Name: ${member?.shortName ?: "N/A"}")
+
+            // Member Details
+            Column(
+                verticalArrangement = Arrangement.spacedBy(1.dp)
+            ) {
+                // Text fields for editing member details
+                OutlinedTextField(
+                    value = firstNameState.value,
+                    onValueChange = { firstNameState.value = it },
+                    label = { Text("First Name") },
+                    isError = showError && firstNameState.value.isBlank(),
+                    textStyle = TextStyle(fontSize = 14.sp),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = middleNameState.value,
+                    onValueChange = { middleNameState.value = it },
+                    label = { Text("Middle Name") },
+                    isError = showError && middleNameState.value.isBlank(),
+                    textStyle = TextStyle(fontSize = 14.sp),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = lastNameState.value,
+                    onValueChange = { lastNameState.value = it },
+                    label = { Text("Last Name") },
+                    isError = showError && lastNameState.value.isBlank(),
+                    textStyle = TextStyle(fontSize = 14.sp),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = townState.value,
+                    onValueChange = { townState.value = it },
+                    label = { Text("Town") },
+                    isError = showError && townState.value.isBlank(),
+                    textStyle = TextStyle(fontSize = 14.sp),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Text(text = "Short Name: ${member?.shortName ?: "N/A"}", fontSize = 10.sp)
+            }
         }
+
+        // Button to transfer onClick image action
+        Button(
+            onClick = { imagePickerLauncher.launch("image/*") },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 8.dp)
+        ) {
+            Text(text = "Change Image")
+        }
+
+        // Save Button
+        Button(
+            onClick = {
+                // Save the edited member details
+                if (firstNameState.value.isBlank() || middleNameState.value.isBlank() || lastNameState.value.isBlank() || townState.value.isBlank()) {
+                    showError = true
+                } else {
+                    showError = false
+                    viewModel.updateMember(
+                        memberId,
+                        firstNameState.value.trim(),
+                        middleNameState.value.trim(),
+                        lastNameState.value.trim(),
+                        townState.value.trim(),
+                        shortName = member?.shortName ?: "",
+                        imageUri = imageUriState ?: ""
+                    )
+                    Toast.makeText(context, "Saved", Toast.LENGTH_SHORT).show()
+                }
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(2.dp)
+        ) {
+            Text(text = "Save")
+        }
+
+        Text(
+            text = "Created At: ${formatDateTime(member?.createdAt)}",
+            fontSize = 8.sp
+        )
     }
-    Text(text = "Created At: ${formatDateTime(member?.createdAt)}", fontSize = 8.sp)
 }
 
 @Composable
