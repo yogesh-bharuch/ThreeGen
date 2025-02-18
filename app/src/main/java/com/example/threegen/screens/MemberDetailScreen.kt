@@ -322,8 +322,8 @@ fun Buttons(navController: NavHostController, viewModel: ThreeGenViewModel, memb
         ) {
             Button(
                 onClick = {
-                    /*member?.let { viewModel.deleteThreeGen(it) }
-                    navController.popBackStack()   */
+                    member?.let { viewModel.deleteThreeGen(it) }
+                    navController.popBackStack()
                 },
                 modifier = Modifier.weight(1f),
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
