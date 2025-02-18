@@ -5,8 +5,10 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -16,6 +18,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material3.Button
@@ -59,30 +64,80 @@ fun MemberDetailScreen(
     // Observe the member data using observeAsState
     val member by viewModel.getMemberById(memberId).observeAsState()
 
-    Column(
+    // State for zoomed image
+    var zoomedImageUri by remember { mutableStateOf<String?>(null) }
+
+    Box(
         modifier = modifier
             .fillMaxSize()
             .padding(4.dp)
     ) {
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+        ) {
+            item {
+                // Page Header
+                PageHeader(member = member)
+                Spacer(modifier = Modifier.height(8.dp))
+            }
 
-        // Page Header
-        PageHeader(member = member)
-        Spacer(modifier = Modifier.height(8.dp))
+            item {
+                // Profile Image
+                AddImage(
+                    navController = navController,
+                    viewModel = viewModel,
+                    member = member,
+                    memberId = memberId
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+            }
 
-        // Profile Image
-        AddImage(navController = navController, viewModel = viewModel, member = member, memberId = memberId)
-        Spacer(modifier = Modifier.height(4.dp))
+            item {
+                // Parent Information
+                ParentInformation(member = member, viewModel = viewModel) { uri ->
+                    zoomedImageUri = uri
+                }
+                Spacer(modifier = Modifier.height(4.dp))
+            }
 
-       // Parent Information
-        ParentInformation(member = member, viewModel = viewModel)
-        Spacer(modifier = Modifier.height(4.dp))
+            item {
+                // Spouse Information
+                SpouseInformation(member = member, viewModel = viewModel) { uri ->
+                    zoomedImageUri = uri
+                }
+                Spacer(modifier = Modifier.height(4.dp))
+            }
 
-        // Spouse Information
-        SpouseInformation(member = member, viewModel = viewModel)
-        Spacer(modifier = Modifier.height(4.dp))
+            item {
+                // Buttons Edit and Delete
+                Buttons(
+                    navController = navController,
+                    viewModel = viewModel,
+                    member = member,
+                    memberId = memberId
+                )
+            }
+        }
 
-        // Buttons Edit and Delete
-        Buttons(navController = navController, viewModel = viewModel, member = member, memberId = memberId)
+        // Zoomed Image Overlay
+        zoomedImageUri?.let { uri ->
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.8f))
+                    .clickable { zoomedImageUri = null },
+                contentAlignment = Alignment.Center
+            ) {
+                Image(
+                    painter = rememberAsyncImagePainter(uri),
+                    contentDescription = "Zoomed Image",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                )
+            }
+        }
     }
 }
 
@@ -198,6 +253,7 @@ fun AddImage(navController: NavHostController,viewModel: ThreeGenViewModel,membe
                 modifier = Modifier
                     .fillMaxWidth()
             )
+            Text(text = "Short Name: ${member?.shortName ?: "N/A"}", fontSize = 10.sp)
 
             // Save Button
             Button(
@@ -223,7 +279,7 @@ fun AddImage(navController: NavHostController,viewModel: ThreeGenViewModel,membe
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(4.dp)
+                    .padding(2.dp)
             ) {
                 Text(text = "Save")
             }
@@ -235,10 +291,8 @@ fun AddImage(navController: NavHostController,viewModel: ThreeGenViewModel,membe
 }
 
 @Composable
-fun ParentInformation(member: ThreeGen?, modifier: Modifier = Modifier, viewModel: ThreeGenViewModel) {
-    // Spacer(modifier = Modifier.height(8.dp))
+fun ParentInformation(member: ThreeGen?, viewModel: ThreeGenViewModel, onImageClick: (String) -> Unit) {
     HorizontalDivider(thickness = 1.dp, color = Color.Gray)
-
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.Center,
@@ -247,11 +301,14 @@ fun ParentInformation(member: ThreeGen?, modifier: Modifier = Modifier, viewMode
         member?.parentID?.let { parentId ->
             val parentMember by viewModel.getMemberById(parentId).observeAsState()
             parentMember?.let { parent ->
-                if (parent.imageUri != null) {
+                val imageUri = parent.imageUri // Local variable to hold imageUri
+                if (imageUri != null) {
                     Image(
-                        painter = rememberAsyncImagePainter(parent.imageUri),
+                        painter = rememberAsyncImagePainter(imageUri),
                         contentDescription = "Profile Image",
-                        modifier = Modifier.size(56.dp)
+                        modifier = Modifier
+                            .size(56.dp)
+                            .clickable { onImageClick(imageUri) }
                     )
                 } else {
                     Icon(
@@ -273,8 +330,8 @@ fun ParentInformation(member: ThreeGen?, modifier: Modifier = Modifier, viewMode
 }
 
 @Composable
-fun SpouseInformation(member: ThreeGen?, modifier: Modifier = Modifier, viewModel: ThreeGenViewModel) {
-    HorizontalDivider(thickness = 1.dp, color = Color.Gray) // Add a divider here
+fun SpouseInformation(member: ThreeGen?, viewModel: ThreeGenViewModel, onImageClick: (String) -> Unit) {
+    HorizontalDivider(thickness = 1.dp, color = Color.Gray)
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.Center,
@@ -283,11 +340,14 @@ fun SpouseInformation(member: ThreeGen?, modifier: Modifier = Modifier, viewMode
         member?.spouseID?.let { spouseId ->
             val spouseMember by viewModel.getMemberById(spouseId).observeAsState()
             spouseMember?.let { spouse ->
-                if (spouse.imageUri != null) {
+                val imageUri = spouse.imageUri // Local variable to hold imageUri
+                if (imageUri != null) {
                     Image(
-                        painter = rememberAsyncImagePainter(spouse.imageUri),
+                        painter = rememberAsyncImagePainter(imageUri),
                         contentDescription = "Profile Image",
-                        modifier = Modifier.size(56.dp)
+                        modifier = Modifier
+                            .size(56.dp)
+                            .clickable { onImageClick(imageUri) }
                     )
                 } else {
                     Icon(
@@ -296,9 +356,9 @@ fun SpouseInformation(member: ThreeGen?, modifier: Modifier = Modifier, viewMode
                         modifier = Modifier.size(56.dp)
                     )
                 }
-                Spacer(modifier = Modifier.width(8.dp)) // Space between image and text
+                Spacer(modifier = Modifier.width(8.dp))
                 Column(
-                    verticalArrangement = Arrangement.spacedBy(4.dp) // Space between texts
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     Text(text = "Spouse: ${spouse.firstName} ${spouse.middleName} ${spouse.lastName}")
                     Text(text = "Town: ${spouse.town}")
