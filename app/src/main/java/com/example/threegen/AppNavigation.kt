@@ -3,12 +3,11 @@ package com.example.threegen
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
-import androidx.navigation.compose.*
 import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
 import androidx.navigation.toRoute
 import com.example.threegen.data.ThreeGenViewModel
 import com.example.threegen.screens.AddMemberScreen
-import com.example.threegen.screens.EditMemberScreen
 import com.example.threegen.screens.FamilyTreeScreen
 import com.example.threegen.screens.HomeScreen
 import com.example.threegen.screens.HomeScreenA
@@ -56,17 +55,6 @@ fun AppNavigation(
         composable<MemberDetail> {
             val arg = it.toRoute<MemberDetail>()
             MemberDetailScreen(
-                memberId = arg.id,
-                navController = navController,
-                viewModel = viewModel,
-                modifier = modifier
-            )
-        }
-
-        //Edit Member
-        composable<EditMember> {
-            val arg = it.toRoute<EditMember>()
-            EditMemberScreen(
                 memberId = arg.id,
                 navController = navController,
                 viewModel = viewModel,
@@ -133,11 +121,6 @@ data class HomeA(
 @Serializable
 data class MemberDetail(
     val id : Int = 0,
-)
-
-@Serializable
-data class EditMember(
-    val id : Int = 1
 )
 
 @Serializable
