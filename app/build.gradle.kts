@@ -87,4 +87,7 @@ dependencies {
     // Material Icons Extended library
     implementation(libs.androidx.material.icons.extended)
 
+    //Material3 Icons
+    implementation(libs.material3)
+
 }

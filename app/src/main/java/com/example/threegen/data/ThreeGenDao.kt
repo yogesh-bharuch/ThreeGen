@@ -6,11 +6,18 @@ import androidx.room.*
 @Dao
 interface ThreeGenDao {
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insert(threeGen: ThreeGen)
+
     @Upsert
     suspend fun addThreeGen(threeGen: ThreeGen)
 
     @Update
     suspend fun updateThreeGen(threeGen: ThreeGen)
+
+    @Update
+    suspend fun updateMember(member: ThreeGen)
+
 
     @Delete
     suspend fun deleteThreeGen(threeGen: ThreeGen)
@@ -49,6 +56,14 @@ interface ThreeGenDao {
                 AND three_gen_table.id != :memberId
             """)
     fun getSiblings(memberId: Int):  LiveData<List<ThreeGen>>
+
+    // Optional methods for getting children and spouse (if needed)
+    @Query("SELECT * FROM three_gen_table WHERE parentID = :parentId")
+    fun getChildren(parentId: Int): LiveData<List<ThreeGen>>
+
+    @Query("SELECT * FROM three_gen_table WHERE spouseID = :spouseId")
+    fun getSpouse(spouseId: Int): LiveData<ThreeGen?>
+
     //fun getSiblings1(memberId: Int): List<ThreeGen>  :memberId
     //@Query("""SELECT * FROM three_gen_table
     //            WHERE three_gen_table.parentID = (SELECT  three_gen_table.parentID FROM three_gen_table WHERE three_gen_table.id = :memberId)

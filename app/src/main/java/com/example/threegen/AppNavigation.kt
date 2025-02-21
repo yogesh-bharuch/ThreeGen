@@ -6,6 +6,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.toRoute
+import com.example.threegen.data.NewThreeGenViewModel
 import com.example.threegen.data.ThreeGenViewModel
 import com.example.threegen.screens.AddMemberScreen
 import com.example.threegen.screens.FamilyTreeScreen
@@ -20,6 +21,7 @@ import kotlinx.serialization.Serializable
 @Composable
 fun AppNavigation(
     viewModel: ThreeGenViewModel,
+    viewModelNew: NewThreeGenViewModel,
     modifier: Modifier,
     navController: NavHostController
 ) {
@@ -100,7 +102,7 @@ fun AppNavigation(
             val arg = it.toRoute<HomeA>()
             HomeScreenA(
                 navController = navController,
-                viewModel = viewModel,
+                viewModel = viewModelNew,
                 modifier = modifier,
                 memberId = arg.id
             )

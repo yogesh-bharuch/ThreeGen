@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.rememberNavController
+import com.example.threegen.data.NewThreeGenViewModel
 import com.example.threegen.data.ThreeGen
 import com.example.threegen.data.ThreeGenViewModel
 import com.example.threegen.ui.theme.ThreeGenTheme
@@ -26,6 +27,7 @@ class MainActivity : ComponentActivity() {
             ThreeGenTheme {
                 val navController = rememberNavController()
                 val viewModel : ThreeGenViewModel = viewModel()
+                val viewModelNew : NewThreeGenViewModel = viewModel()
                 // Request permissions
                 RequestPermissions(activity = this)
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
@@ -33,6 +35,7 @@ class MainActivity : ComponentActivity() {
                     AppNavigation(
                         navController = navController,
                         viewModel = viewModel,
+                        viewModelNew = viewModelNew,
                         modifier = Modifier
                             .padding(innerPadding)
                             .padding(8.dp)

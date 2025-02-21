@@ -1,239 +1,134 @@
 package com.example.threegen.screens
 
-import android.util.Log
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import coil.compose.rememberImagePainter
-import com.example.threegen.data.MemberAndSpouseData
 import com.example.threegen.data.ThreeGen
 import com.example.threegen.data.ThreeGenViewModel
 
 @Composable
 fun FamilyTreeScreen(memberId: Int,
                      navController: NavHostController,
-                     viewModel: ThreeGenViewModel,
+                     viewModel: ThreeGenViewModel = viewModel(),
                      modifier: Modifier = Modifier) {
-    val memberAndSpouseData = viewModel.memberAndSpouseData.observeAsState()
-    val siblingsData = viewModel.siblingsData.observeAsState()
+    val members by viewModel.threeGenList.observeAsState(initial = emptyList())
+    var zoomedImageUri by remember { mutableStateOf<String?>(null) }
 
-    viewModel.getMemberAndSpouseData(memberId)
-    viewModel.getSiblings(memberId)
-
-    Column(modifier = modifier.padding(16.dp)) {
-        memberAndSpouseData.value?.let { data ->
-            FamilyTreeContent(data)
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        siblingsData.value?.let { siblings ->
-            Log.d("FamilyTreeScreen", "Displaying ${siblings.size} siblings")
-
-            Text(text = "Siblings:")
-            siblings.forEach { sibling ->
-                SiblingItem(sibling)
-            }
-        }
-        Log.d("FamilyTreeScreen", "Displaying size siblings")
-    }
-}
-
-@Composable
-fun FamilyTreeContent(data: MemberAndSpouseData) {
-    Column {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            data.memberImageUri?.let {
-                Image(
-                    painter = rememberImagePainter(it),
-                    contentDescription = "Member Image",
-                    modifier = Modifier
-                        .size(128.dp)
-                        .padding(end = 16.dp), // Padding between image and text
-                    contentScale = ContentScale.Crop
-                )
-            }
-            Column(
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(text = "Name: ${data.memberFullName}")
-                Text(text = "Town: ${data.memberTown}")
+    Box(modifier = modifier.fillMaxSize().padding(16.dp)) {
+        LazyColumn(modifier = Modifier.fillMaxSize()) {
+            items(members.filter { it.parentID == null }) { member ->
+                FamilyTreeItem(member = member, members = members, onImageClick = { uri -> zoomedImageUri = uri })
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            data.spouseImageUri?.let {
-                Image(
-                    painter = rememberImagePainter(it),
-                    contentDescription = "Spouse Image",
-                    modifier = Modifier
-                        .size(128.dp)
-                        .padding(end = 16.dp), // Padding between image and text
-                    contentScale = ContentScale.Crop
-                )
-            }
-            Column(
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(text = "Name: ${data.spouseFullName}")
-                Text(text = "Town: ${data.spouseTown}")
-            }
-        }
-    }
-}
-
-@Composable
-fun SiblingItem(sibling: ThreeGen) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        sibling.imageUri?.let {
-            Image(
-                painter = rememberImagePainter(it),
-                contentDescription = "Sibling Image",
+        // Zoomed Image Overlay
+        zoomedImageUri?.let { uri ->
+            Box(
                 modifier = Modifier
-                    .size(64.dp)
-                    .padding(end = 16.dp),
-                contentScale = ContentScale.Crop
-            )
-        }
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Text(text = "Name: ${sibling.firstName} ${sibling.middleName} ${sibling.lastName}")
-            Text(text = "Town: ${sibling.town}")
-        }
-    }
-}
-
-
-/*
-package com.example.threegen.screens
-
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.livedata.observeAsState
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavHostController
-import coil.compose.rememberImagePainter
-import com.example.threegen.data.MemberAndSpouseData
-import com.example.threegen.data.ThreeGenViewModel
-
-@Composable
-fun FamilyTreeScreen(memberId: Int,
-                     navController: NavHostController,
-                     viewModel: ThreeGenViewModel,
-                     modifier: Modifier = Modifier) {
-    val memberAndSpouseData = viewModel.memberAndSpouseData.observeAsState()
-
-    viewModel.getMemberAndSpouseData(memberId)
-
-    memberAndSpouseData.value?.let { data ->
-        FamilyTreeContent(data)
-    }
-}
-
-@Composable
-fun FamilyTreeContent(data: MemberAndSpouseData) {
-    Column(modifier = Modifier.padding(16.dp)) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            data.memberImageUri?.let {
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.8f))
+                    .clickable { zoomedImageUri = null },
+                contentAlignment = Alignment.Center
+            ) {
                 Image(
-                    painter = rememberImagePainter(it),
-                    contentDescription = "Member Image",
+                    painter = rememberImagePainter(uri),
+                    contentDescription = "Zoomed Image",
                     modifier = Modifier
-                        .size(128.dp)
-                        .padding(end = 16.dp), // Padding between image and text
-                    contentScale = ContentScale.Crop
+                        .fillMaxWidth()
+                        .padding(16.dp)
                 )
             }
-            Column(
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(text = "Name: ${data.memberFullName}")
-                Text(text = "Town: ${data.memberTown}")
-            }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            data.spouseImageUri?.let {
-                Image(
-                    painter = rememberImagePainter(it),
-                    contentDescription = "Spouse Image",
-                    modifier = Modifier
-                        .size(128.dp)
-                        .padding(end = 16.dp), // Padding between image and text
-                    contentScale = ContentScale.Crop
-                )
-            }
-            Column(
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(text = "Name: ${data.spouseFullName}")
-                Text(text = "Town: ${data.spouseTown}")
-            }
         }
     }
 }
 
-@Preview(showBackground = true)
 @Composable
-fun FamilyTreePreview() {
-    val sampleData = MemberAndSpouseData(
-        memberFullName = "John Doe",
-        memberTown = "Springfield",
-        memberImageUri = null,
-        spouseFullName = "Jane Doe",
-        spouseTown = "Springfield",
-        spouseImageUri = null
-    )
-    FamilyTreeContent(data = sampleData)
+fun FamilyTreeItem(member: ThreeGen, members: List<ThreeGen>, indent: Int = 0, onImageClick: (String) -> Unit) {
+    val backgroundColor = if (indent % 2 == 0) Color.LightGray else Color.White
+
+    Column(
+        modifier = Modifier
+            .padding(start = (indent + 16).dp, bottom = 8.dp) // Adjusted padding
+            .fillMaxWidth()
+            .background(color = backgroundColor) // Use the same background color for member and spouse
+    ) {
+        Column(modifier = Modifier.padding(start = 16.dp)) { // Ensure same indent for member and spouse
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Image(
+                    painter = rememberImagePainter(member.imageUri),
+                    contentDescription = "Profile Image",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .size(72.dp) // Adjusted size to 72.dp
+                        .padding(8.dp)
+                        .clickable { onImageClick(member.imageUri ?: "") }
+                )
+                Column(
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(
+                        "${member.firstName} ${member.middleName} ${member.lastName}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text("Town: ${member.town}")
+                }
+            }
+
+            member.spouseID?.let { spouseId ->
+                members.find { it.id == spouseId }?.let { spouse ->
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(color = backgroundColor) // Use the same background color for spouse
+                    ) {
+                        Image(
+                            painter = rememberImagePainter(spouse.imageUri),
+                            contentDescription = "Spouse Image",
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .size(72.dp) // Adjusted size to 72.dp
+                                .padding(8.dp)
+                                .clickable { onImageClick(spouse.imageUri ?: "") }
+                        )
+                        Column(
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text(
+                                "Spouse: ${spouse.firstName} ${spouse.middleName} ${spouse.lastName}",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text("Town: ${spouse.town}")
+                        }
+                    }
+                }
+            }
+        }
+
+        // Display children recursively
+        members.filter { it.parentID == member.id }.forEach { child ->
+            FamilyTreeItem(member = child, members = members, indent = indent + 1, onImageClick = onImageClick)
+        }
+    }
 }
-
-
- */
