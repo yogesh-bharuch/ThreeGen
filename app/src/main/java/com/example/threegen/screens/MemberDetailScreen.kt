@@ -1,5 +1,6 @@
 package com.example.threegen.screens
 
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -19,11 +20,13 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -326,7 +329,26 @@ fun ParentInformation(member: ThreeGen?, viewModel: ThreeGenViewModel, onImageCl
                 Column(
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    Text(text = "Parent: ${parent.firstName} ${parent.middleName} ${parent.lastName}")
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(8.dp)
+                    ) {
+                        Text(
+                            text = "Parent: ${parent.firstName} ${parent.middleName} ${parent.lastName}",
+                            modifier = Modifier.weight(1f)
+                        )
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Log.d("ParentInformation", "Parent : ${parent.firstName} for member: ${member.firstName}" )
+                        IconButton(onClick = { member.parentID = null }) {
+                            Icon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = "Delete"
+                            )
+                            Log.d("ParentInformation", "Parent : ${parent.firstName} for member: ${member.firstName}" )
+                        }
+                    }
+
+                    //Text(text = "Parent: ${parent.firstName} ${parent.middleName} ${parent.lastName}")
                     Text(text = "Town: ${parent.town}")
                 }
             }
