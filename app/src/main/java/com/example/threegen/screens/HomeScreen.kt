@@ -79,7 +79,7 @@ fun HomeScreen(
         }
 
         Spacer(modifier = Modifier.height(16.dp))
- /*
+
         Button(
             onClick = { navController.navigate(MemberFamilyTree(id = 26)) },
             modifier = Modifier.fillMaxWidth()
@@ -87,7 +87,7 @@ fun HomeScreen(
             Text(text = "Go To Members Family Tree")
         }
 
- */
+
 
 
     }
