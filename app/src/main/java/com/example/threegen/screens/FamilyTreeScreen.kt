@@ -1,26 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 package com.example.threegen.screens
 
 import androidx.compose.foundation.Image
@@ -48,10 +25,12 @@ import com.example.threegen.data.ThreeGen
 import com.example.threegen.data.ThreeGenViewModel
 
 @Composable
-fun FamilyTreeScreen(memberId: Int,
-                     navController: NavHostController,
-                     viewModel: ThreeGenViewModel = viewModel(),
-                     modifier: Modifier = Modifier) {
+fun FamilyTreeScreen(
+    memberId: Int,
+    navController: NavHostController,
+    viewModel: ThreeGenViewModel = viewModel(),
+    modifier: Modifier = Modifier
+) {
     val members by viewModel.threeGenList.observeAsState(initial = emptyList())
     var zoomedImageUri by remember { mutableStateOf<String?>(null) }
 
@@ -61,7 +40,12 @@ fun FamilyTreeScreen(memberId: Int,
     Box(modifier = modifier.fillMaxSize().padding(16.dp)) {
         LazyColumn(modifier = Modifier.fillMaxSize()) {
             items(rootMembers) { member ->
-                FamilyTreeItem(navController = navController, member = member, members = members, onImageClick = { uri -> zoomedImageUri = uri })
+                FamilyTreeItem(
+                    navController = navController,
+                    member = member,
+                    members = members,
+                    onImageClick = { uri -> zoomedImageUri = uri }
+                )
             }
         }
 
@@ -87,8 +71,15 @@ fun FamilyTreeScreen(memberId: Int,
 }
 
 @Composable
-fun FamilyTreeItem(navController : NavController, member: ThreeGen, members: List<ThreeGen>, indent: Int = 0, onImageClick: (String) -> Unit) {
+fun FamilyTreeItem(
+    navController: NavController,
+    member: ThreeGen,
+    members: List<ThreeGen>,
+    indent: Int = 0,
+    onImageClick: (String) -> Unit
+) {
     val backgroundColor = if (indent % 2 == 0) Color.LightGray else Color.White
+    var expanded by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -96,9 +87,7 @@ fun FamilyTreeItem(navController : NavController, member: ThreeGen, members: Lis
             .fillMaxWidth()
             .background(color = backgroundColor) // Use the same background color for member and spouse
             .clickable {
-                // Navigate to the selected member's family tree screen
-                navController.navigate(MemberFamilyTree(id = member.id))
-                //navController.navigate("selected_member_family_tree_screen/${member.id}")
+                expanded = !expanded
             }
     ) {
         Column(modifier = Modifier.padding(start = 16.dp)) { // Ensure same indent for member and spouse
@@ -159,10 +148,17 @@ fun FamilyTreeItem(navController : NavController, member: ThreeGen, members: Lis
             }
         }
 
-        // Display children recursively
-        members.filter { it.parentID == member.id }.forEach { child ->
-            FamilyTreeItem(navController = navController, member = child, members = members, indent = indent + 1, onImageClick = onImageClick)
+        if (expanded) {
+            // Display children recursively
+            members.filter { it.parentID == member.id }.forEach { child ->
+                FamilyTreeItem(
+                    navController = navController,
+                    member = child,
+                    members = members,
+                    indent = indent + 1,
+                    onImageClick = onImageClick
+                )
+            }
         }
     }
 }
-
