@@ -47,6 +47,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import coil.compose.rememberAsyncImagePainter
+import com.example.threegen.MemberFamilyTree
 import com.example.threegen.MemberTree
 import com.example.threegen.SelectParent
 import com.example.threegen.SelectSpouse
@@ -419,7 +420,7 @@ fun Buttons(navController: NavHostController, viewModel: ThreeGenViewModel, memb
             }
 
             Button(
-                onClick = { navController.navigate(MemberTree(id = memberId)) },
+                onClick = { navController.navigate(MemberFamilyTree(id = member!!.id)) },
                 modifier = Modifier.weight(1f)
             ) {
                 Text(text = "Family Tree")
