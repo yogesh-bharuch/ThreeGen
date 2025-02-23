@@ -76,14 +76,14 @@ fun MemberDetailScreen(
             modifier = Modifier
                 .fillMaxSize()
         ) {
+            // Page Header
             item {
-                // Page Header
                 PageHeader(member = member)
                 Spacer(modifier = Modifier.height(8.dp))
             }
 
+            // Profile Image
             item {
-                // Profile Image
                 AddImage(
                     navController = navController,
                     viewModel = viewModel,
@@ -94,24 +94,24 @@ fun MemberDetailScreen(
                 Spacer(modifier = Modifier.height(4.dp))
             }
 
+            // Parent Information
             item {
-                // Parent Information
                 ParentInformation(member = member, viewModel = viewModel) { uri ->
                     zoomedImageUri = uri
                 }
                 Spacer(modifier = Modifier.height(4.dp))
             }
 
+            // Spouse Information
             item {
-                // Spouse Information
                 SpouseInformation(member = member, viewModel = viewModel) { uri ->
                     zoomedImageUri = uri
                 }
                 Spacer(modifier = Modifier.height(4.dp))
             }
 
+            // Buttons Edit and Delete
             item {
-                // Buttons Edit and Delete
                 Buttons(
                     navController = navController,
                     viewModel = viewModel,
