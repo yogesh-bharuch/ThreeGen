@@ -96,6 +96,8 @@ class ThreeGenViewModel : ViewModel() {
         middleName: String,
         lastName: String,
         town: String,
+        parentID: Int?,
+        spouseID: Int?,
         shortName: String,
         imageUri: String
     ) {
@@ -109,6 +111,8 @@ class ThreeGenViewModel : ViewModel() {
                 middleName = middleName,
                 lastName = lastName,
                 town = town,
+                parentID = parentID,
+                spouseID = spouseID,
                 shortName = uniqueShortName,
                 imageUri = imageUri
             )
