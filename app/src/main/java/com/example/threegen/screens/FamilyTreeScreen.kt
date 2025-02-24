@@ -37,7 +37,7 @@ fun FamilyTreeScreen(
     val parentIds = remember(members) { members.mapNotNull { it.parentID }.toSet() }
     val rootMembers = members.filter { it.parentID == null && it.id in parentIds }
 
-    Box(modifier = modifier.fillMaxSize().padding(16.dp)) {
+    Box(modifier = modifier.fillMaxSize().padding(4.dp)) {
         LazyColumn(modifier = Modifier.fillMaxSize()) {
             items(rootMembers) { member ->
                 FamilyTreeItem(
@@ -63,7 +63,7 @@ fun FamilyTreeScreen(
                     contentDescription = "Zoomed Image",
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp)
+                        .padding(8.dp)
                 )
             }
         }
@@ -83,14 +83,14 @@ fun FamilyTreeItem(
 
     Column(
         modifier = Modifier
-            .padding(start = (indent + 16).dp, bottom = 8.dp) // Adjusted padding
+            .padding(start = (indent + 8).dp, bottom = 8.dp) // Adjusted padding
             .fillMaxWidth()
             .background(color = backgroundColor) // Use the same background color for member and spouse
             .clickable {
                 expanded = !expanded
             }
     ) {
-        Column(modifier = Modifier.padding(start = 16.dp)) { // Ensure same indent for member and spouse
+        Column(modifier = Modifier.padding(start = 8.dp)) { // Ensure same indent for member and spouse
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth()
