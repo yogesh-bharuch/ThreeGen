@@ -2,11 +2,16 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
-    id("com.google.devtools.ksp") // Add this line
+    // id("com.google.devtools.ksp") // Add this line
+    alias(libs.plugins.ksp)
+    alias(libs.plugins.gms)
+
+
     // Kotlin serialization plugin for type safe routes and navigation arguments
+    //alias(libs.plugins.kotlin.serialization)
     kotlin("plugin.serialization") version "2.0.21"
     // for firebase
-    id("com.google.gms.google-services")
+    //id("com.google.gms.google-services")
 
 }
 
@@ -97,6 +102,7 @@ dependencies {
 
     // Import the Firebase BoM
     implementation(platform(libs.firebase.bom))
+    //implementation(libs.firebase.database)
 
     // For example, declare the dependencies for Firebase Authentication and Cloud Firestore
     implementation(libs.firebase.auth)

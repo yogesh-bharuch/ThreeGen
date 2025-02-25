@@ -7,12 +7,13 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.threegen.MainApplication
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 class ThreeGenViewModel : ViewModel() {
     private val repository: ThreeGenRepository
-
+    //private lateinit var firestore : FirebaseFirestore
     init {
         val threeGenDao = MainApplication.threeGenDatabase.getThreeGenDao()
         repository = ThreeGenRepository(threeGenDao)
