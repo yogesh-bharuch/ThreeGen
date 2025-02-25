@@ -3,6 +3,7 @@ package com.example.threegen
 import android.app.Application
 import androidx.room.Room
 import com.example.threegen.data.ThreeGenDatabase
+import com.google.firebase.FirebaseApp
 
 class MainApplication : Application() {
 
@@ -19,6 +20,8 @@ class MainApplication : Application() {
         )
             .fallbackToDestructiveMigration()
             .build()
+        FirebaseApp.initializeApp(this)
     }
+
 }
 

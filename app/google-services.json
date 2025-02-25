@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1069780249130",
+    "project_id": "threegendata",
+    "storage_bucket": "threegendata.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1069780249130:android:a6cddb004175cee3463153",
+        "android_client_info": {
+          "package_name": "com.example.threegen"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCZDGhbjYSm-kRCodDtOYke4wupmoo2JCY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

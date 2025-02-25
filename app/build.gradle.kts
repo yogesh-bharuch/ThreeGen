@@ -5,6 +5,9 @@ plugins {
     id("com.google.devtools.ksp") // Add this line
     // Kotlin serialization plugin for type safe routes and navigation arguments
     kotlin("plugin.serialization") version "2.0.21"
+    // for firebase
+    id("com.google.gms.google-services")
+
 }
 
 android {
@@ -53,6 +56,7 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
     implementation(libs.androidx.room.ktx)
+    implementation(libs.firebase.firestore)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -89,5 +93,17 @@ dependencies {
 
     //Material3 Icons
     implementation(libs.material3)
+
+
+    // Import the Firebase BoM
+    implementation(platform(libs.firebase.bom))
+
+    // For example, declare the dependencies for Firebase Authentication and Cloud Firestore
+    implementation(libs.firebase.auth)
+    implementation(libs.google.firebase.firestore)
+
+    // When using the BoM, don't specify versions in Firebase dependencies
+    implementation(libs.firebase.analytics)
+
 
 }
