@@ -1,6 +1,5 @@
 package com.example.threegen.screens
 
-import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -22,6 +21,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.PersonAdd
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -45,10 +45,10 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import coil.compose.rememberAsyncImagePainter
 import com.example.threegen.MemberFamilyTree
-import com.example.threegen.MemberTree
 import com.example.threegen.SelectParent
 import com.example.threegen.SelectSpouse
 import com.example.threegen.data.ThreeGen
@@ -412,16 +412,18 @@ fun Buttons(navController: NavHostController, viewModel: ThreeGenViewModel, memb
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Button(
+            DeleteButton(member, viewModel, navController)
+            /*Button(
                 onClick = {
                     member?.let { viewModel.deleteThreeGen(it) }
-                    navController.popBackStack()
+                    //Toast.makeText(LocalContext.current, "click save ", Toast.LENGTH_SHORT).show()
+                    //navController.popBackStack()
                 },
                 modifier = Modifier.weight(1f),
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
             ) {
                 Text(text = "Delete")
-            }
+            }*/
 
             Button(
                 onClick = { navController.navigate(MemberFamilyTree(id = member!!.id)) },
@@ -452,5 +454,47 @@ fun Buttons(navController: NavHostController, viewModel: ThreeGenViewModel, memb
                 Text(text = "Change Spouse")
             }
         }
+    }
+}
+
+@Composable
+fun DeleteButton(member: ThreeGen?, viewModel: ThreeGenViewModel, navController: NavController) {
+    var showDialog by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+
+    Button(
+        onClick = { showDialog = true }, // 🔹 Show confirmation dialog
+        //modifier = Modifier.weight(1f),
+        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+    ) {
+        Text(text = "Delete")
+    }
+
+    if (showDialog) {
+        AlertDialog(
+            onDismissRequest = { showDialog = false }, // 🔹 Close dialog on dismiss
+            title = { Text("Confirm Delete") },
+            text = { Text("Are you sure you want to delete this member? This action cannot be undone.") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showDialog = false
+                        member?.let { viewModel.deleteThreeGen(it) } // 🔹 Delete the member
+                        // 🔹 Save action (if needed)
+                        Toast.makeText(context, "Member Deleted", Toast.LENGTH_SHORT).show()
+                        navController.popBackStack() // 🔹 Navigate back
+                    }
+                ) {
+                    Text("Yes, Delete")
+                }
+            },
+            dismissButton = {
+                Button(
+                    onClick = { showDialog = false } // 🔹 Cancel delete
+                ) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 }

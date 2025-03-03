@@ -71,12 +71,10 @@ class ThreeGenViewModel : ViewModel() {
                     "middleName" to updatedMember.middleName,
                     "lastName" to updatedMember.lastName,
                     "town" to updatedMember.town,
-                    //"parentID" to updatedMember.parentID,
-                    //"spouseID" to updatedMember.spouseID,
                     "shortName" to updatedMember.shortName,
                     "imageUri" to updatedMember.imageUri
                 )
-                updates.put("parentID", updatedMember.parentID ?: FieldValue.delete())
+                updates.put("parentID", updatedMember.parentID ?: FieldValue.delete())   // 🔥 Fix for Firestore null issue
                 updates.put("spouseID", updatedMember.spouseID ?: FieldValue.delete())  // 🔥 Fix for Firestore null issue
                 // 🔹 Force `spouseID` update by setting it to `null` explicitly
 
@@ -115,12 +113,12 @@ class ThreeGenViewModel : ViewModel() {
     fun deleteThreeGen(threeGen: ThreeGen) {
         viewModelScope.launch(Dispatchers.IO) {
             // Step 1: Find related members
-            val spouse = threeGen.spouseID?.let { repository.getMemberByIdSync(it) }
+            val spouse = threeGen.spouseID?.let { repository.getMemberByIdSync(it) } // fetches the spouse's details from the Room database.
             Log.d("MyFirestoreViewModel", "Spouse: ${spouse?.firstName}")
 
             // Step 2: Update Firestore for related members
             if (spouse != null) {
-                val spouseUpdate = mapOf("spouseID" to null)
+                val spouseUpdate = mapOf("spouseID" to FieldValue.delete()) // 🔹 Remove field instead of setting null
                 Log.d("MyFirestoreViewModel", "Updating spouse in Firestore: ${spouse}")
                 firestoreRepository.updateMemberInFirestore(spouse.id.toString(), spouseUpdate)
                 Log.d("MyFirestoreViewModel", "Spouse updated in Firestore: ${spouse}")
@@ -128,7 +126,7 @@ class ThreeGenViewModel : ViewModel() {
             // Fetch children
             val children = repository.getChildrenByParentId(threeGen.id)
             for (child in children) {
-                val childUpdate = mapOf("parentID" to null)
+                val childUpdate = mapOf("parentID" to FieldValue.delete()) // 🔹 Remove field instead of setting null
                 firestoreRepository.updateMemberInFirestore(child.id.toString(), childUpdate)
             }
 
