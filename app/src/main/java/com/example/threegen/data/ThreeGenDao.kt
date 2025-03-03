@@ -64,6 +64,9 @@ interface ThreeGenDao {
     @Query("SELECT * FROM three_gen_table WHERE parentID = :parentId")
     fun getChildren(parentId: Int): LiveData<List<ThreeGen>>
 
+    @Query("SELECT * FROM three_gen_table WHERE parentID = :parentId")
+    suspend fun getChildrenByParentId(parentId: Int): List<ThreeGen>
+
     @Query("SELECT * FROM three_gen_table WHERE spouseID = :spouseId")
     fun getSpouse(spouseId: Int): LiveData<ThreeGen?>
 

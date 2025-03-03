@@ -51,8 +51,11 @@ class ThreeGenRepository(private val threeGenDao: ThreeGenDao) {
     }
 
     // Optional methods
-    fun getChildrenByParentId(parentId: Int): LiveData<List<ThreeGen>> {
+    fun getChildren(parentId: Int): LiveData<List<ThreeGen>> {
         return threeGenDao.getChildren(parentId)
+    }
+    suspend fun getChildrenByParentId(parentId: Int): List<ThreeGen> {
+        return threeGenDao.getChildrenByParentId(parentId)
     }
 
     fun getSpouse(spouseId: Int): LiveData<ThreeGen?> {

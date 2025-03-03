@@ -8,6 +8,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.threegen.MainApplication
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -64,12 +65,26 @@ class ThreeGenViewModel : ViewModel() {
             if (updatedMember != null) {
                 repository.updateThreeGen(updatedMember)
                 // 🔹 Firestore Sync (Convert ID to String for Firestore)
-                val updates = mapOf("firstName" to firstName, "middleName" to middleName, "lastName" to lastName, "town" to town, "parentID" to parentID, "spouseID" to spouseID, "shortName" to uniqueShortName, "imageUri" to imageUri)
+                Log.d("SelectMemberScreen", "From view model Updating member with ID spouse delete: $memberId to $updatedMember")
+                val updates = mutableMapOf<String, Any?>(
+                    "firstName" to updatedMember.firstName,
+                    "middleName" to updatedMember.middleName,
+                    "lastName" to updatedMember.lastName,
+                    "town" to updatedMember.town,
+                    //"parentID" to updatedMember.parentID,
+                    //"spouseID" to updatedMember.spouseID,
+                    "shortName" to updatedMember.shortName,
+                    "imageUri" to updatedMember.imageUri
+                )
+                updates.put("parentID", updatedMember.parentID ?: FieldValue.delete())
+                updates.put("spouseID", updatedMember.spouseID ?: FieldValue.delete())  // 🔥 Fix for Firestore null issue
+                // 🔹 Force `spouseID` update by setting it to `null` explicitly
+
                 val result = firestoreRepository.updateMemberInFirestore(memberId.toString(), updates)
                 if (result.isFailure) {
-                    Log.e("Firestore", "Failed to update member in Firestore: ${result.exceptionOrNull()?.message}")
+                    Log.e("SelectMemberScreen", "Failed to update member in Firestore: ${result.exceptionOrNull()?.message}")
                 } else {
-                    Log.d("Firestore", "Successfully updated member in Firestore")
+                    Log.d("SelectMemberScreen", "Successfully updated member in Firestore")
                 }
             }
         }
@@ -101,14 +116,17 @@ class ThreeGenViewModel : ViewModel() {
         viewModelScope.launch(Dispatchers.IO) {
             // Step 1: Find related members
             val spouse = threeGen.spouseID?.let { repository.getMemberByIdSync(it) }
-            val children = repository.getChildrenByParentId(threeGen.id) // Fetch children
+            Log.d("MyFirestoreViewModel", "Spouse: ${spouse?.firstName}")
 
             // Step 2: Update Firestore for related members
             if (spouse != null) {
                 val spouseUpdate = mapOf("spouseID" to null)
+                Log.d("MyFirestoreViewModel", "Updating spouse in Firestore: ${spouse}")
                 firestoreRepository.updateMemberInFirestore(spouse.id.toString(), spouseUpdate)
+                Log.d("MyFirestoreViewModel", "Spouse updated in Firestore: ${spouse}")
             }
-
+            // Fetch children
+            val children = repository.getChildrenByParentId(threeGen.id)
             for (child in children) {
                 val childUpdate = mapOf("parentID" to null)
                 firestoreRepository.updateMemberInFirestore(child.id.toString(), childUpdate)
