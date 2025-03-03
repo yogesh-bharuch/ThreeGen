@@ -26,7 +26,7 @@ import androidx.room.*
 )
 data class ThreeGen(
     @PrimaryKey(autoGenerate = true)
-    val id: Int = 0,
+    var id: Int = 0,
     var parentID: Int? = null, // Parent's ID (nullable for root members)
     var spouseID: Int? = null, // Spouse's ID (nullable if no spouse)
     val firstName: String,

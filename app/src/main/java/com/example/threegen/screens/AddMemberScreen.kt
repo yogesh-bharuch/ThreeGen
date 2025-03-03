@@ -1,6 +1,7 @@
 package com.example.threegen.screens
 
 import android.util.Log
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
@@ -24,6 +25,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
@@ -47,6 +49,7 @@ fun AddMemberScreen(
     var parentID by remember { mutableStateOf<Int?>(null) }
     var spouseID by remember { mutableStateOf<Int?>(null) }
     var showError by remember { mutableStateOf(false) }
+    val context = LocalContext.current
     //var isMemberSaved by remember { mutableStateOf(false) }
     //var newMemberID by remember { mutableStateOf(Int) }
 
@@ -151,6 +154,7 @@ fun AddMemberScreen(
                         spouseID = spouseID
                     )
                     //isMemberSaved = true
+                    Toast.makeText(context, "Member added successfully!", Toast.LENGTH_SHORT).show()
                     navController.popBackStack()
                 }
             },

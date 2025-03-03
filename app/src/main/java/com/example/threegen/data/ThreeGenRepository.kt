@@ -7,12 +7,15 @@ class ThreeGenRepository(private val threeGenDao: ThreeGenDao) {
 
     val allThreeGen: LiveData<List<ThreeGen>> = threeGenDao.getAllThreeGen()
 
+    suspend fun getAllThreeGenAsObject(): List<ThreeGen> {
+        return threeGenDao.getAllThreeGenAsObject()
+    }
     suspend fun insert(threeGen: ThreeGen) {
         threeGenDao.insert(threeGen)
     }
 
-    suspend fun addThreeGen(threeGen: ThreeGen) {
-        threeGenDao.addThreeGen(threeGen)
+    suspend fun addThreeGen(threeGen: ThreeGen): Long {
+        return threeGenDao.addThreeGen(threeGen)
     }
 
     suspend fun updateThreeGen(threeGen: ThreeGen) {
@@ -48,11 +51,12 @@ class ThreeGenRepository(private val threeGenDao: ThreeGenDao) {
     }
 
     // Optional methods
-    fun getChildren(parentId: Int): LiveData<List<ThreeGen>> {
+    fun getChildrenByParentId(parentId: Int): LiveData<List<ThreeGen>> {
         return threeGenDao.getChildren(parentId)
     }
 
     fun getSpouse(spouseId: Int): LiveData<ThreeGen?> {
         return threeGenDao.getSpouse(spouseId)
     }
+
 }

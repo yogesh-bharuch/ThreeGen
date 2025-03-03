@@ -6,11 +6,14 @@ import androidx.room.*
 @Dao
 interface ThreeGenDao {
 
+    @Query("SELECT * FROM three_gen_table ORDER BY createdAt DESC")
+    fun getAllThreeGenAsObject(): List<ThreeGen>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insert(threeGen: ThreeGen)
+    suspend fun insert(threeGen: ThreeGen): Long
 
     @Upsert
-    suspend fun addThreeGen(threeGen: ThreeGen)
+    suspend fun addThreeGen(threeGen: ThreeGen): Long
 
     @Update
     suspend fun updateThreeGen(threeGen: ThreeGen)

@@ -103,13 +103,15 @@ dependencies {
 
     // Import the Firebase BoM
     implementation(platform(libs.firebase.bom))
-    //implementation(libs.firebase.database)
 
-    // For example, declare the dependencies for Firebase Authentication and Cloud Firestore
-    implementation(libs.firebase.auth)
-    implementation(libs.google.firebase.firestore)
+    // Firebase Authentication
+    implementation(libs.firebase.auth.ktx)
 
-    // When using the BoM, don't specify versions in Firebase dependencies
+    // Firebase Firestore
+    implementation(libs.firebase.firestore.ktx)
+
+    // Firebase Storage
+    implementation(libs.firebase.storage.ktx)
     implementation(libs.firebase.analytics)
 
 

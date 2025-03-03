@@ -103,7 +103,8 @@ fun MemberListItem(
             Text(text = "${member.firstName} ${member.middleName} ${member.lastName}")
         },
         supportingContent = {
-            Text(text = "Town: ${member.town}")
+            Text(text = "Town: ${member.town}      id: ${member.id}")
+
         },
         modifier = Modifier
             .fillMaxWidth()

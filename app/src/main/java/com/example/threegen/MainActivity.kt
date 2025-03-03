@@ -30,8 +30,13 @@ class MainActivity : ComponentActivity() {
                 val viewModelNew : NewThreeGenViewModel = viewModel()
                 // Request permissions
                 RequestPermissions(activity = this)
+                // Call the function to copy data to Firestore
+                //viewModel.copyDataToFirestore()
+
+
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
 
+                    // Call the function to copy data to Firestore
                     AppNavigation(
                         navController = navController,
                         viewModel = viewModel,
