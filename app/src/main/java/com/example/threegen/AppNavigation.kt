@@ -17,6 +17,7 @@ import com.example.threegen.screens.MemberDetailScreen
 import com.example.threegen.screens.MemberFamilyTreeScreen
 import com.example.threegen.screens.SelectMemberScreen
 import com.example.threegen.screens.SelectSpouseScreen
+import com.example.threegen.screens.UnusedMembersScreen
 import kotlinx.serialization.Serializable
 
 @Composable
@@ -98,6 +99,16 @@ fun AppNavigation(
             )
         }
 
+        //Unused Members
+        composable<UnusedMembers> {
+            val arg = it.toRoute<UnusedMembers>()
+            UnusedMembersScreen(
+                navController = navController,
+                viewModel = viewModel,
+                modifier = modifier
+            )
+        }
+
         //Member tree
         composable<MemberFamilyTree> {
             val arg = it.toRoute<MemberFamilyTree>()
@@ -149,6 +160,11 @@ data class SelectSpouse(
 
 @Serializable
 data class MemberTree(
+    val id : Int = 0
+)
+
+@Serializable
+data class UnusedMembers(
     val id : Int = 0
 )
 

@@ -2,10 +2,16 @@ package com.example.threegen.data
 
 
 import androidx.lifecycle.LiveData
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
 
 class ThreeGenRepository(private val threeGenDao: ThreeGenDao) {
 
     val allThreeGen: LiveData<List<ThreeGen>> = threeGenDao.getAllThreeGen()
+
+    fun getAllMembers(): Flow<List<ThreeGen>> {
+        return threeGenDao.getAllThreeGenAsFlow()
+    }
 
     suspend fun getAllThreeGenAsObject(): List<ThreeGen> {
         return threeGenDao.getAllThreeGenAsObject()

@@ -348,18 +348,6 @@ fun Buttons(navController: NavHostController, viewModel: ThreeGenViewModel, memb
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             DeleteButton(member, viewModel, navController)
-            /*Button(
-                onClick = {
-                    member?.let { viewModel.deleteThreeGen(it) }
-                    //Toast.makeText(LocalContext.current, "click save ", Toast.LENGTH_SHORT).show()
-                    //navController.popBackStack()
-                },
-                modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
-            ) {
-                Text(text = "Delete")
-            }*/
-
             Button(
                 onClick = { navController.navigate(MemberFamilyTree(id = member!!.id)) },
                 modifier = Modifier.weight(1f)
@@ -402,7 +390,7 @@ fun DeleteButton(member: ThreeGen?, viewModel: ThreeGenViewModel, navController:
         //modifier = Modifier.weight(1f),
         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
     ) {
-        Text(text = "Delete")
+        Text(text = "Delete Member")
     }
 
     if (showDialog) {

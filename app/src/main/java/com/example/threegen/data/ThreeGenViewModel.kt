@@ -11,6 +11,10 @@ import com.example.threegen.MainApplication
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 class ThreeGenViewModel : ViewModel() {
@@ -26,6 +30,21 @@ class ThreeGenViewModel : ViewModel() {
     }
 
     val threeGenList: LiveData<List<ThreeGen>> = repository.allThreeGen
+
+    // Live Flow containing all members
+    val allMembers = repository.getAllMembers()
+
+    // StateFlow that filters out members who are not used as a parent or spouse
+    val unusedMembers: StateFlow<List<ThreeGen>> = allMembers
+        .map { members ->
+            val usedAsParentOrSpouse = members.flatMap { listOfNotNull(it.parentID, it.spouseID) }.toSet()
+
+            members.filter {
+                it.parentID == null && it.spouseID == null && it.id !in usedAsParentOrSpouse
+            }
+        }
+        .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+
 
     // Add a new ThreeGen entry
     fun addThreeGen(firstName: String, middleName: String, lastName: String, town: String, imageUri: String?, parentID: Int?, spouseID: Int?) {

@@ -2,6 +2,7 @@ package com.example.threegen.data
 
 import androidx.lifecycle.LiveData
 import androidx.room.*
+import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface ThreeGenDao {
@@ -21,9 +22,11 @@ interface ThreeGenDao {
     @Update
     suspend fun updateMember(member: ThreeGen)
 
-
     @Delete
     suspend fun deleteThreeGen(threeGen: ThreeGen)
+
+    @Query("SELECT * FROM three_gen_table ORDER BY id ASC")
+    fun getAllThreeGenAsFlow(): Flow<List<ThreeGen>>
 
     @Query("SELECT * FROM three_gen_table ORDER BY createdAt DESC")
     fun getAllThreeGen(): LiveData<List<ThreeGen>>

@@ -22,6 +22,7 @@ import com.example.threegen.HomeA
 import com.example.threegen.ListScreen
 import com.example.threegen.MemberFamilyTree
 import com.example.threegen.MemberTree
+import com.example.threegen.UnusedMembers
 import com.example.threegen.data.ThreeGenViewModel
 
 @Composable
@@ -81,10 +82,10 @@ fun HomeScreen(
         Spacer(modifier = Modifier.height(16.dp))
 
         Button(
-            onClick = { navController.navigate(MemberFamilyTree(id = 26)) },
+            onClick = { navController.navigate(UnusedMembers()) },
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text(text = "Go To Members Family Tree")
+            Text(text = "Go To Unused Members")
         }
 
 
