@@ -115,13 +115,9 @@ fun MemberDetailScreen(
                     .clickable { zoomedImageUri = null },
                 contentAlignment = Alignment.Center
             ) {
-                Image(
-                    painter = rememberAsyncImagePainter(uri),
-                    contentDescription = "Zoomed Image",
-                    modifier = Modifier
+                Image(painter = rememberAsyncImagePainter(uri), contentDescription = "Zoomed Image", modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp)
-                )
+                        .padding(16.dp))
             }
         }
     }
@@ -185,27 +181,17 @@ fun AddImage(navController: NavHostController, viewModel: ThreeGenViewModel, mem
         ) {
             // Profile Image
             if (imageUriState != null) {
-                Image(
-                    painter = rememberAsyncImagePainter(imageUriState),
-                    contentDescription = "Profile Image",
-                    modifier = Modifier
+                Image(painter = rememberAsyncImagePainter(imageUriState), contentDescription = "Profile Image", modifier = Modifier
                         .size(100.dp)
-                        .clickable { imageUriState?.let { uri -> onImageClick(uri) } }
-                )
+                        .clickable { imageUriState?.let { uri -> onImageClick(uri) } })
             } else {
-                Icon(
-                    imageVector = Icons.Default.PersonAdd,
-                    contentDescription = "No Profile Image",
-                    modifier = Modifier
+                Icon(imageVector = Icons.Default.PersonAdd, contentDescription = "No Profile Image", modifier = Modifier
                         .size(100.dp)
-                        .clickable { imagePickerLauncher.launch("image/*") }
-                )
+                        .clickable { imagePickerLauncher.launch("image/*") })
             }
 
             // Member Details
-            Column(
-                verticalArrangement = Arrangement.spacedBy(1.dp)
-            ) {
+            Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
                 // Text fields for editing member details
                 OutlinedTextField(
                     value = firstNameState.value,
@@ -239,23 +225,20 @@ fun AddImage(navController: NavHostController, viewModel: ThreeGenViewModel, mem
                     textStyle = TextStyle(fontSize = 14.sp),
                     modifier = Modifier.fillMaxWidth()
                 )
-                Text(text = "Short Name: ${member?.shortName ?: "N/A"}", fontSize = 10.sp)
+                Row {
+                    Text(text = "Short Name: ${member?.shortName ?: "N/A"}", fontSize = 10.sp, modifier = Modifier.weight(0.7f))
+                    Text(text = "ID: ${member?.id ?: "N/A"}", fontSize = 10.sp)
+                }
             }
         }
 
-        // Button to transfer onClick image action
-        Button(
-            onClick = { imagePickerLauncher.launch("image/*") },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 8.dp)
-        ) {
-            Text(text = "Change Image")
-        }
+        // Button change image
+        Button(onClick = { imagePickerLauncher.launch("image/*") }, modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 8.dp)) { Text(text = "Change Image") }
 
         // Save Button
-        Button(
-            onClick = {
+        Button(onClick = {
                 // Save the edited member details
                 if (firstNameState.value.isBlank() || middleNameState.value.isBlank() || lastNameState.value.isBlank() || townState.value.isBlank()) {
                     showError = true
@@ -274,31 +257,22 @@ fun AddImage(navController: NavHostController, viewModel: ThreeGenViewModel, mem
                     )
                     Toast.makeText(context, "Saved", Toast.LENGTH_SHORT).show()
                 }
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(2.dp)
-        ) {
-            Text(text = "Save")
-        }
+            }, modifier = Modifier
+            .fillMaxWidth()
+            .padding(2.dp)) { Text(text = "Save") }
 
         // created at text
-        Text(
-            text = "Created At: ${formatDateTime(member?.createdAt)}",
-            fontSize = 8.sp
-        )
+        Text(text = "Created At: ${formatDateTime(member?.createdAt)}", fontSize = 8.sp)
 
         // ParentInformation
         HorizontalDivider(thickness = 1.dp, color = Color.Gray)
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+        Text(text = "Parent:", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
             member?.parentID?.let { parentId ->
                 val parentMember by viewModel.getMemberById(parentId).observeAsState()
                 parentMember?.let { parent ->
                     val imageUri = parent.imageUri // Local variable to hold imageUri
+
                     if (imageUri != null) {
                         Image(
                             painter = rememberAsyncImagePainter(imageUri),
@@ -308,36 +282,24 @@ fun AddImage(navController: NavHostController, viewModel: ThreeGenViewModel, mem
                                 .clickable { onImageClick(imageUri) }
                         )
                     } else {
-                        Icon(
-                            imageVector = Icons.Default.PersonAdd,
-                            contentDescription = "No Profile Image",
-                            modifier = Modifier.size(56.dp)
-                        )
+                        Icon(imageVector = Icons.Default.PersonAdd, contentDescription = "No Profile Image", modifier = Modifier.size(56.dp))
                     }
+
                     Spacer(modifier = Modifier.width(8.dp))
-                    // parent information name
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    // parent name
+                    Column(verticalArrangement = Arrangement.spacedBy(0.dp)
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(8.dp)
+                            modifier = Modifier.padding(4.dp)
                         ) {
-                            Text(
-                                text = "Parent: ${parent.firstName} ${parent.middleName} ${parent.lastName}",
-                                modifier = Modifier.weight(1f)
-                            )
-                            Spacer(modifier = Modifier.width(16.dp))
-                            //Log.d("ParentInformation", "Parent : ${parent.firstName} for member: ${member.firstName}" )
+                            Text(text = "${parent.firstName} ${parent.middleName} ${parent.lastName}", modifier = Modifier.weight(1f), fontSize = 14.sp)
+                            Spacer(modifier = Modifier.width(8.dp))
                             IconButton(onClick = { parentIDState.value = null }) {
-                                Icon(
-                                    imageVector = Icons.Default.Delete,
-                                    contentDescription = "Delete"
-                                )
-                                //Log.d("ParentInformation", "Parent : ${parent.firstName} for member: ${member.firstName}" )
+                                Icon(imageVector = Icons.Default.Delete, contentDescription = "Delete")
                             }
                         }
-                        Text(text = "Town: ${parent.town}")
+                        Text(text = "Town: ${parent.town}      ID: ${parent.id}", fontSize = 14.sp)
                     }
                 }
             }
@@ -345,54 +307,27 @@ fun AddImage(navController: NavHostController, viewModel: ThreeGenViewModel, mem
 
         // Spouse Information
         HorizontalDivider(thickness = 1.dp, color = Color.Gray)
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+        Text(text = "Spouse:", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
             member?.spouseID?.let { spouseId ->
                 val spouseMember by viewModel.getMemberById(spouseId).observeAsState()
                 spouseMember?.let { spouse ->
                     val imageUri = spouse.imageUri // Local variable to hold imageUri
                     if (imageUri != null) {
-                        Image(
-                            painter = rememberAsyncImagePainter(imageUri),
-                            contentDescription = "Profile Image",
-                            modifier = Modifier
-                                .size(56.dp)
-                                .clickable { onImageClick(imageUri) }
-                        )
-                    } else {
-                        Icon(
-                            imageVector = Icons.Default.PersonAdd,
-                            contentDescription = "No Profile Image",
-                            modifier = Modifier.size(56.dp)
-                        )
+                        Image(painter = rememberAsyncImagePainter(imageUri), contentDescription = "Profile Image", modifier = Modifier.size(56.dp).clickable { onImageClick(imageUri) })
+                    } else { Icon(imageVector = Icons.Default.PersonAdd, contentDescription = "No Profile Image", modifier = Modifier.size(56.dp))
                     }
                     Spacer(modifier = Modifier.width(8.dp))
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    Column(verticalArrangement = Arrangement.spacedBy(0.dp)
                     ) {
-
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(8.dp)
-                        ) {
-                            Text(
-                                text = "Spouse: ${spouse.firstName} ${spouse.middleName} ${spouse.lastName}",
-                                modifier = Modifier.weight(1f)
-                            )
-                            Spacer(modifier = Modifier.width(16.dp))
-                            //Log.d("ParentInformation", "Parent : ${spouse.firstName} for member: ${member.firstName}" )
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(0.dp)) {
+                            Text(text = "${spouse.firstName} ${spouse.middleName} ${spouse.lastName}", modifier = Modifier.weight(1f), fontSize = 14.sp)
+                            Spacer(modifier = Modifier.width(8.dp))
                             IconButton(onClick = { spouseIDState.value = null }) {
-                                Icon(
-                                    imageVector = Icons.Default.Delete,
-                                    contentDescription = "Delete"
-                                )
-                                //Log.d("ParentInformation", "Parent : ${spouse.firstName} for member: ${member.firstName}" )
+                                Icon(imageVector = Icons.Default.Delete, contentDescription = "Delete")
                             }
                         }
-                        Text(text = "Town: ${spouse.town}")
+                        Text(text = "Town: ${spouse.town}      ID: ${spouse.id}", fontSize = 14.sp)
                     }
                 }
             }
