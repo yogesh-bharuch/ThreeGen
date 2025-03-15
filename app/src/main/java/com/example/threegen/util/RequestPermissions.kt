@@ -18,7 +18,7 @@ fun RequestPermissions(activity: Activity) {
     if (ContextCompat.checkSelfPermission(context, Manifest.permission.READ_EXTERNAL_STORAGE)
         != PackageManager.PERMISSION_GRANTED) {
         ActivityCompat.requestPermissions(activity, arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE),
-            Constants.REQUEST_CODE)
+            Constants.IMAGE_PICK_REQUEST_CODE)
     }
 }
 

@@ -7,10 +7,11 @@ import com.example.threegen.data.ThreeGen
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
 
+
 class ThreeGenFirestoreRepository {
     private val firestore = FirebaseFirestore.getInstance()
     private val collectionRef = firestore.collection("Members")
-
+/*
     /**
      * Adds a new member to Firestore or updates an existing one if the document ID already exists.
      *
@@ -117,4 +118,6 @@ class ThreeGenFirestoreRepository {
             Result.failure(e)
         }
     }
+
+ */
 }

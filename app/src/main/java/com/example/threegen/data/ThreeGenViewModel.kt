@@ -1,4 +1,355 @@
+package com.example.threegen.data
 
+import android.util.Log
+import android.widget.Toast
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.asFlow
+import androidx.lifecycle.asLiveData
+import androidx.lifecycle.viewModelScope
+import com.example.threegen.MainApplication
+import com.example.threegen.util.MemberState
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+
+class ThreeGenViewModel(
+    private val dao: ThreeGenDao,
+    private val firestore: FirebaseFirestore
+) : ViewModel()
+{
+    private val repository: ThreeGenRepository
+    //private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()
+   // private val firestore = FirebaseFirestore.getInstance()
+    private val auth: FirebaseAuth = FirebaseAuth.getInstance()
+    private val collectionRef = firestore.collection("ThreeGenMembers")
+
+    init {
+        val threeGenDao = MainApplication.threeGenDatabase.getThreeGenDao()
+        repository = ThreeGenRepository(threeGenDao)
+    }
+
+    // ✅ Holds the full list of members from the database
+    private val _threeGenList = MutableStateFlow<List<ThreeGen>>(emptyList())
+    val threeGenList: StateFlow<List<ThreeGen>> = _threeGenList
+        // ✅ Prevent unnecessary updates
+        .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+
+    //--------------------------
+    // Convert Flow to LiveData for Compose UI
+    val allMembersLiveData: LiveData<List<ThreeGen>> = threeGenList.asLiveData()
+    /*// Function to fetch members and update LiveData
+    fun fetchThreeGenList() {
+        viewModelScope.launch {
+            try {
+                val members = repository.getAllMembers()
+                _threeGenList.value = members
+            } catch (e: Exception) {
+                Log.e("MemberViewModel", "Error fetching members: ${e.message}")
+            }
+        }
+    }*/
+    //--------------------------
+
+    // ✅ UI State management for the list
+    private val _memberState = MutableStateFlow<MemberState>(MemberState.Loading)
+    val memberState: StateFlow<MemberState> = _memberState
+        // ✅ Prevent redundant updates
+        .stateIn(viewModelScope, SharingStarted.Lazily, MemberState.Loading)
+
+    // ✅ Search query for filtering members
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
+
+    // ✅ Ensure filtering is applied correctly
+    @OptIn(FlowPreview::class)
+    val filteredMembers: StateFlow<List<ThreeGen>> = _searchQuery
+        .debounce(300) // Prevents excessive updates while typing
+        .combine(_threeGenList) { query, list ->
+            if (query.isBlank()) list else list.filter { it.shortName.contains(query, ignoreCase = true) }
+        }
+        .distinctUntilChanged() // ✅ Avoid recompositions if the result is the same
+        .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+
+    // ✅ Fetches members and updates UI state
+    fun fetchMembers() {
+        viewModelScope.launch {
+            _memberState.value = MemberState.Loading
+            try {
+                val members = repository.getAllMembers()
+                if (_threeGenList.value != members) { // ✅ Update only if the data has changed
+                    _threeGenList.value = members
+                }
+                _memberState.value = if (members.isEmpty()) MemberState.Empty else MemberState.SuccessList(members)
+            } catch (e: Exception) {
+                _memberState.value = MemberState.Error(e.message ?: "Unknown error")
+                Log.e("ThreeGenViewModel", "Error fetching members: ${e.message}")
+            }
+        }
+    }
+
+    // ✅ Updates search query for filtering
+    fun updateSearchQuery(query: String) {
+        _searchQuery.value = query
+    }
+
+    // ✅ Fetches a single member's state
+    fun getMemberState(memberId: String): StateFlow<MemberState> {
+        val stateFlow = MutableStateFlow<MemberState>(MemberState.Loading)
+
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val member = repository.getMemberByIdSync(memberId)
+                val parent = member?.parentID?.let { repository.getMemberByIdSync(it) }
+                val spouse = member?.spouseID?.let { repository.getMemberByIdSync(it) }
+                withContext(Dispatchers.Main) {
+                    //stateFlow.value = member?.let { MemberState.Success(it) } ?: MemberState.Empty
+                    if (member != null) {
+                        stateFlow.value = MemberState.Success(member, parent, spouse)
+                    } else {
+                        stateFlow.value = MemberState.Empty
+                    }
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    stateFlow.value = MemberState.Error(e.message ?: "Unknown error")
+                }
+            }
+        }
+
+        return stateFlow.asStateFlow()
+    }
+
+    //private val fetchedMemberIds = mutableSetOf<String>()
+    // private val fetchedMemberIds = mutableSetOf<String>()
+    fun fetchMemberDetails(memberId: String) {
+        viewModelScope.launch {
+            _memberState.value = MemberState.Loading
+            Log.d("MemberDetailViewModel", "State updated: Loading") // ✅ Log when loading starts
+
+            try {
+                val member = repository.getMemberById(memberId).asFlow().firstOrNull()
+                val parent = member?.parentID?.let { repository.getMemberById(it).asFlow().firstOrNull() }
+                val spouse = member?.spouseID?.let { repository.getMemberById(it).asFlow().firstOrNull() }
+
+                _memberState.value = if (member != null) {
+                    Log.d("MemberDetailViewModel", "State updated: Success") // ✅ Log success state
+                    MemberState.Success(member, parent, spouse)
+                } else {
+                    Log.d("MemberDetailViewModel", "State updated: Empty") // ✅ Log empty state
+                    MemberState.Empty
+                }
+            } catch (e: Exception) {
+                Log.d("MemberDetailViewModel", "State updated: Error") // ✅ Log error state
+                _memberState.value = MemberState.Error(e.message ?: "Unknown error")
+            }
+        }
+    }
+
+    // ✅ Adds a new member to the database
+    fun addThreeGen(firstName: String, middleName: String, lastName: String, town: String, imageUri: String?, parentID: String?, spouseID: String?, childNumber: Int? = 1, comment: String? = null) {
+        if (firstName.isBlank() || middleName.isBlank() || lastName.isBlank() || town.isBlank()) {
+            Log.e("ThreeGenViewModel", "Validation failed: All name fields and town are required")
+            return
+        }
+
+        viewModelScope.launch(Dispatchers.IO) {
+            val formattedFirstName = formatName(firstName)
+            val formattedMiddleName = formatName(middleName)
+            val formattedLastName = formatName(lastName)
+            val formattedTown = formatName(town)
+            val uniqueShortName = generateUniqueShortName(formattedFirstName, formattedMiddleName, formattedLastName, formattedTown)
+            // ✅ Get the current user ID for the createdBy field
+            val currentUserId = auth.currentUser?.uid
+            //val currentUserId1 = firebase.auth().currentUser.uid;
+
+            // ✅ Create a new ThreeGen object to insert in local database with formated values and createdby field with current user
+            val newMember = ThreeGen(firstName = formattedFirstName, middleName = formattedMiddleName, lastName = formattedLastName, town = formattedTown, shortName = uniqueShortName, imageUri = imageUri, parentID = parentID, spouseID = spouseID, createdAt = System.currentTimeMillis(), syncStatus = SyncStatus.NOT_SYNCED, childNumber = childNumber, comment = comment, createdBy = currentUserId)
+            // created field with currentfirebaseuser
+            //val currentUserId = auth.currentUser?.uid
+
+            repository.addThreeGen(newMember)
+            fetchMembers() // ✅ Refresh list after adding a member
+        }
+    }
+
+    // new update function
+    fun updateMember(memberId: String, firstName: String, middleName: String, lastName: String, town: String, parentID: String?, spouseID: String?, imageUri: String?, childNumber: Int?, comment: String?) {
+        if (firstName.isBlank() || middleName.isBlank() || lastName.isBlank() || town.isBlank()) {
+            Log.e("ThreeGenViewModel", "Validation failed: All name fields and town are required")
+            return
+        }
+
+        viewModelScope.launch(Dispatchers.IO) {
+            val member = repository.getMemberByIdSync(memberId) ?: return@launch
+            val formattedFirstName = formatName(firstName)
+            val formattedMiddleName = formatName(middleName)
+            val formattedLastName = formatName(lastName)
+            val formattedTown = formatName(town)
+            val uniqueShortName = generateUniqueShortName(formattedFirstName, formattedMiddleName, formattedLastName, formattedTown)
+            val updatedMember = member.copy(firstName = formattedFirstName, middleName = formattedMiddleName, lastName = formattedLastName, town = formattedTown, parentID = parentID, spouseID = spouseID, shortName = uniqueShortName, imageUri = imageUri, childNumber = childNumber, comment = comment, syncStatus = SyncStatus.UPDATED)
+            Log.d("yogesh", "Updating member with ID from viewmodel before repo call : $memberId to $updatedMember")
+            repository.updateThreeGen(updatedMember)
+
+            withContext(Dispatchers.Main) {
+                _memberState.value = MemberState.Loading // 🔥 Force UI to refresh
+
+                // 🔥 Fetch the updated member from the database after saving
+                val freshMember = repository.getMemberByIdSync(memberId)
+                val parent = freshMember?.parentID?.let { repository.getMemberByIdSync(it) }
+                val spouse = freshMember?.spouseID?.let { repository.getMemberByIdSync(it) }
+
+                Log.d("yogesh", "Freshly fetched member from viewmodel after repo update call: $freshMember")
+                _memberState.value = freshMember?.let {
+                    MemberState.Success(it, parent, spouse) //where it is the freshMember passed from the database
+                } ?: MemberState.Empty
+
+                Log.d("ViewModel", "State updated to : ${_memberState.value}")
+            }
+
+            //fetchMembers() // ✅ Refresh list after updating
+        }
+    }
+
+    // ✅ Marks a member as deleted
+    fun deleteMember(memberId: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val member = repository.getMemberByIdSync(memberId)
+            if (member != null) {
+                repository.deleteThreeGen(member)
+                fetchMembers() // ✅ Refresh list after deleting a member
+            } else {
+                Log.e("ThreeGenViewModel", "Member not found: $memberId")
+            }
+        }
+    }
+
+    // ✅ Generates a unique short name
+    private suspend fun generateUniqueShortName(firstName: String, middleName: String, lastName: String, town: String): String {
+        val initials = "${firstName.first()}${middleName.first()}${lastName.first()}${town.first()}".uppercase()
+        var uniqueShortName = initials
+        var count = 1
+
+        while (repository.getShortNameCount(uniqueShortName) > 0) {
+            uniqueShortName = "$initials$count"
+            count++
+        }
+
+        return uniqueShortName
+    }
+
+    // ✅ Converts names to Proper Case (First letter uppercase, rest lowercase)
+    private fun formatName(name: String): String {
+        return name.lowercase().replaceFirstChar { it.uppercase() }
+    }
+
+    // Method to sync local data to Firestore with a callback for the result message
+    fun syncLocalDataToFirestore(callback: (String) -> Unit) {
+
+        val currentUserId = auth.currentUser?.uid
+        //val currentUser = FirebaseAuth.getInstance().currentUser
+        if (currentUserId == null) {
+            Log.d("FirestoreViewModel", "Not authenticated user cannot perform sync action")
+            //Toast.makeText(context, "Not authenticated user cannot perform sync action", Toast.LENGTH_LONG).show()
+            return
+        }
+        Log.d("FirestoreViewModel", "Syncing local data to Firestore by: $currentUserId")
+        val messages = mutableListOf<String>()
+        viewModelScope.launch(Dispatchers.IO) {
+            val allMembers = repository.getAllMembers()
+            Log.d("FirestoreViewModel", "All members: ${allMembers.size}")
+            // update only syncstatus is !SYNCED
+            allMembers.forEach { member ->
+                if (member.syncStatus != SyncStatus.SYNCED) {
+                    Log.d("FirestoreViewModel", "Updating member in Firestore: ${member.firstName}")
+                    updateFirestore(member, messages)
+                }
+            }
+
+            // Return the messages after syncing
+            withContext(Dispatchers.Main) {
+                callback(messages.joinToString("\n"))
+            }
+        }
+    }
+
+    // called from above syncLocalDataToFirestore
+    // Method to update Firestore with member data and collect update messages
+    private fun updateFirestore(threeGen: ThreeGen, messages: MutableList<String>) {
+        Log.d("FirestoreViewModel", "Updating member in Firestore from updateFirestre function: ${threeGen.firstName}")
+        val data = mapOf(
+            "id" to threeGen.id,
+            "firstName" to threeGen.firstName,
+            "middleName" to threeGen.middleName,
+            "lastName" to threeGen.lastName,
+            "town" to threeGen.town,
+            "shortName" to threeGen.shortName,
+            "imageUri" to threeGen.imageUri,
+            "childNumber" to threeGen.childNumber,
+            "comment" to threeGen.comment,
+            "createdAt" to threeGen.createdAt,
+            //"syncStatus" to threeGen.syncStatus.name,
+            //"deleted" to threeGen.deleted,
+            "createdBy" to threeGen.createdBy,
+            "parentID" to threeGen.parentID,
+            "spouseID" to threeGen.spouseID
+            //"ownerId" to currentUser?.uid // ✅ Store the owner's UID
+        )
+        Log.d("FirestoreViewModel", "Data to update: $data")
+        val documentPath = firestore.collection("ThreeGenMembers").document(threeGen.id).path
+        Log.d("FirestoreViewModel", "Firestore Document Path: $documentPath")
+
+
+        firestore.collection("ThreeGenMembers")
+            .document(threeGen.id)
+            .set(data)
+            .addOnSuccessListener {
+                Log.d("FirestoreViewModel", "DocumentSnapshot successfully updated! $data")
+                // Add success message
+                messages.add("Updated member: ${threeGen.firstName} ${threeGen.lastName}")
+                viewModelScope.launch(Dispatchers.IO) {
+                    val updatedMember = threeGen.copy(syncStatus = SyncStatus.SYNCED)
+                    repository.updateThreeGen(updatedMember)
+                }
+            }
+            .addOnFailureListener { e ->
+                Log.e("FirestoreViewModel", "Error updating document: ${e.message}", e)
+                messages.add("Failed to update member: ${threeGen.firstName} ${threeGen.lastName} - Error: ${e.localizedMessage}")
+            }
+    }
+
+
+    // Method to sync deletions to Firestore
+    /*
+    fun syncDeletionsToFirestore() {
+        viewModelScope.launch(Dispatchers.IO) {
+            val deletedMembers = repository.getDeletedMembers()
+            deletedMembers.forEach { member ->
+                updateFirestore(member)
+            }
+        }
+    }*/
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*
 package com.example.threegen.data
 
 import android.util.Log
@@ -301,3 +652,6 @@ class ThreeGenViewModel : ViewModel() {
         }
     }
 }
+
+
+ */

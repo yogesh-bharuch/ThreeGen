@@ -9,5 +9,6 @@ plugins {
     //id("com.google.gms.google-services") version "4.4.2" apply false
     //alias(libs.plugins.kotlin.serialization) apply false
     alias(libs.plugins.gms) apply false
+    // Add the dependency for the Google services Gradle plugin
 
 }

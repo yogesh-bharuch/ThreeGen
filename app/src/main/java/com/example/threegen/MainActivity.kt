@@ -1,5 +1,107 @@
 package com.example.threegen
 
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.activity.viewModels
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Scaffold
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import androidx.navigation.compose.rememberNavController
+import com.example.threegen.login.AuthViewModel
+import com.example.threegen.login.AuthViewModelFactory
+import com.example.threegen.data.NewThreeGenViewModel
+import com.example.threegen.data.NewThreeGenViewModelFactory
+import com.example.threegen.data.ThreeGenViewModel
+import com.example.threegen.data.ThreeGenViewModelFactory
+import com.example.threegen.ui.theme.ThreeGenTheme
+import com.example.threegen.util.RequestPermissions
+
+/**
+ * MainActivity serves as the entry point of the application.
+ * It initializes UI components, ViewModels, navigation, and requests necessary permissions.
+ */
+class MainActivity : ComponentActivity() {
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        // Ensures the app content extends to the system bars for better UI appearance
+        enableEdgeToEdge()
+
+        // Initialize DAO and Firestore
+        val dao = MainApplication.threeGenDatabase.getThreeGenDao()
+        val firestore = MainApplication.instance.let { com.google.firebase.firestore.FirebaseFirestore.getInstance() }
+        val auth = com.google.firebase.auth.FirebaseAuth.getInstance()
+
+        // Initialize ViewModels using custom factories
+        val viewModel: ThreeGenViewModel by viewModels {
+            ThreeGenViewModelFactory(dao, firestore)
+        }
+
+        val viewModelNew: NewThreeGenViewModel by viewModels {
+            NewThreeGenViewModelFactory(dao, firestore)
+        }
+
+        val authViewModel: AuthViewModel by viewModels {
+            AuthViewModelFactory(auth)
+        }
+
+
+        // Set up the Jetpack Compose UI
+        setContent {
+            ThreeGenTheme { // Apply the app's theme
+
+                // Initialize Jetpack Navigation Controller
+                val navController = rememberNavController()
+
+                /*
+                val viewModel: ThreeGenViewModel = viewModel()
+                val viewModelNew: NewThreeGenViewModel = viewModel()
+                */ //old without factory
+                // ✅ Request necessary permissions for accessing storage, camera, etc.
+                // This must be inside the Composable scope to work correctly.
+                RequestPermissions(activity = this@MainActivity)
+
+                // Scaffold provides a layout structure with top bars, bottom bars, etc.
+                Scaffold(
+                    modifier = Modifier.fillMaxSize() // Use the full screen size
+                ) { innerPadding ->
+
+                    // Load the main navigation graph of the app
+                    AppNavigation(
+                        navController = navController,
+                        viewModel = viewModel,
+                        viewModelNew = viewModelNew,
+                        authViewModel = authViewModel,
+                        modifier = Modifier
+                            .padding(innerPadding) // Adjust padding for system bars
+                            .padding(8.dp) // Add additional padding for UI spacing
+                    )
+                }
+            }
+        }
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*
+package com.example.threegen
+
 import android.app.Activity
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -50,9 +152,4 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
-
-
-/*
-    Nav(modifier = Modifier
-                        .padding(innerPadding))
- */
+*/

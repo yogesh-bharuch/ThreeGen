@@ -7,12 +7,17 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.threegen.MainApplication
 import com.example.threegen.util.MemberState
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-class NewThreeGenViewModel : ViewModel() {
+class NewThreeGenViewModel(
+    private val dao: ThreeGenDao,
+    private val firestore: FirebaseFirestore
+) : ViewModel() {
+    /*
     private val threeGenDao = MainApplication.threeGenDatabase.getThreeGenDao()
     val threeGenList: LiveData<List<ThreeGen>> = threeGenDao.getAllThreeGen()
 
@@ -58,4 +63,6 @@ class NewThreeGenViewModel : ViewModel() {
             _memberState.value = MemberState.Success(member)
         }
     }
+
+     */
 }

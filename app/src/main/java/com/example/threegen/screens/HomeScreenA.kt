@@ -1,72 +1,11 @@
 package com.example.threegen.screens
 
-import android.app.Application
-import android.widget.Toast
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.PersonAdd
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.livedata.observeAsState
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.painter.Painter
-import androidx.compose.ui.graphics.vector.rememberVectorPainter
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
-import androidx.navigation.compose.rememberNavController
-import coil.compose.rememberAsyncImagePainter
-import coil.request.ImageRequest
-import coil.transform.CircleCropTransformation
-import com.example.threegen.MemberTree
-import com.example.threegen.SelectParent
-import com.example.threegen.SelectSpouse
 import com.example.threegen.data.NewThreeGenViewModel
 import com.example.threegen.data.ThreeGen
-import com.example.threegen.data.ThreeGenViewModel
-import com.example.threegen.util.MemberState
-import com.example.threegen.util.formatDateTime
-import kotlinx.coroutines.delay
 
 @Composable
 fun HomeScreenA(
@@ -75,6 +14,7 @@ fun HomeScreenA(
     viewModel: NewThreeGenViewModel,
     modifier: Modifier = Modifier
 ) {
+    /*//
     // Fetch member by ID when the Composable is first displayed
     LaunchedEffect(memberId) {
         //delay(1000L) // 1000 milliseconds = 1 second
@@ -167,10 +107,12 @@ fun HomeScreenA(
             }
         }
     }
+    */
 }
 
 @Composable
 fun ZoomedImageOverlay(uri: String?, onDismiss: () -> Unit) {
+    /*//
     uri?.let {
         Box(
             modifier = Modifier
@@ -188,11 +130,13 @@ fun ZoomedImageOverlay(uri: String?, onDismiss: () -> Unit) {
             )
         }
     }
+    */
 }
 
 
 @Composable
 fun PageHeaderA(member: ThreeGen?, modifier: Modifier = Modifier) {
+    /*//
     Text(
         text = "Member Detail",
         style = MaterialTheme.typography.headlineSmall.copy(
@@ -208,6 +152,7 @@ fun PageHeaderA(member: ThreeGen?, modifier: Modifier = Modifier) {
             fontWeight = FontWeight.Bold
         )
     )
+    */
 }
 
 @Composable
@@ -219,7 +164,7 @@ fun AddImageA(
     onImageClick: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-
+    /*//
     // Observe the member state using observeAsState
     val memberState by viewModel.memberState.observeAsState(MemberState.Loading)
 
@@ -371,6 +316,9 @@ fun AddImageA(
         text = "Created At: ${formatDateTime(member?.createdAt)}",
         fontSize = 8.sp
     )
+    */
+
+     */
 }
 /*
 

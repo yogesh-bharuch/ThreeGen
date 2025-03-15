@@ -19,6 +19,7 @@ import com.example.threegen.data.ThreeGen
 import com.example.threegen.data.ThreeGenViewModel
 import com.example.threegen.ui.theme.Shapes
 
+/*
 @Composable
 fun UnusedMembersScreen(
     viewModel: ThreeGenViewModel = viewModel(),
@@ -87,3 +88,6 @@ fun UnusedMemberItem(member: ThreeGen, navController: NavHostController) {
         }
     }
 }
+
+
+ */

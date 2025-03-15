@@ -63,6 +63,7 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation(libs.androidx.room.ktx)
     implementation(libs.firebase.firestore)
+    implementation(libs.androidx.media3.common.ktx)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -73,7 +74,7 @@ dependencies {
 
     // live data
     implementation(libs.androidx.runtime.livedata)
-
+    //implementation("androidx.compose.runtime:runtime-livedata:1.7.8") // Ensure this version matches your Compose version
     //room
     implementation(libs.androidx.room.runtime)
     // optional - Kotlin Extensions and Coroutines support for Room

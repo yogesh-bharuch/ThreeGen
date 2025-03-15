@@ -1,393 +1,469 @@
 package com.example.threegen.screens
 
+import android.os.Handler
+import android.os.Looper
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.PersonAdd
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.NavController
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import coil.compose.rememberAsyncImagePainter
 import com.example.threegen.MemberFamilyTree
-import com.example.threegen.SelectParent
-import com.example.threegen.SelectSpouse
 import com.example.threegen.data.ThreeGen
 import com.example.threegen.data.ThreeGenViewModel
+import com.example.threegen.SelectMemberParent
+import com.example.threegen.SelectMemberSpouse
+import com.example.threegen.util.MemberState
 import com.example.threegen.util.formatDateTime
 
 @Composable
 fun MemberDetailScreen(
-    memberId: Int,
+    memberId: String,
     navController: NavHostController,
     viewModel: ThreeGenViewModel,
+    onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // Observe the member data using observeAsState
-    val member by viewModel.getMemberById(memberId).observeAsState()
-
-    // State for zoomed image
+    val memberState by viewModel.memberState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
     var zoomedImageUri by remember { mutableStateOf<String?>(null) }
 
+    LaunchedEffect(memberId) {
+        //Log.d("MemberDetailScreen", "Calling fetchMemberDetails for ID from launched effect : $memberState")
+        viewModel.fetchMemberDetails(memberId)
+    }
+
+    when (val state = memberState) {
+        is MemberState.Loading -> LoadingState()
+        is MemberState.Empty -> EmptyState() //SuccessList
+        is MemberState.Error -> ErrorState(state.message)
+        is MemberState.SuccessList -> SuccessList()
+        is MemberState.Success -> {
+            val member = state.member
+            val memberParent = state.parent
+            val memberSpouse = state.spouse
+
+            // ✅ Store editable fields together to optimize recomposition
+            val editableMember = remember { mutableStateOf(member) }
+            val editableParent = remember { mutableStateOf(memberParent) }
+            val editableSpouse = remember { mutableStateOf(memberSpouse) } // Added for spouse detail
+
+            Box(modifier = Modifier.fillMaxSize().padding(8.dp))
+            {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize().padding(WindowInsets.navigationBars.asPaddingValues()).padding(WindowInsets.statusBars.asPaddingValues()).padding(PaddingValues(top = 24.dp, bottom = 24.dp))
+                ) {
+                    item { PageHeader() }
+                    item {
+                        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically)
+                        {
+                            AddImage(member, editableMember.value.imageUri ?: "", onImageClick = { zoomedImageUri = it }, onImageUriChange = { uri -> editableMember.value = editableMember.value.copy(imageUri = uri) })
+                            Spacer(modifier = Modifier.width(16.dp))
+                            EditableMemberDetails(
+                                firstName = editableMember.value.firstName, onFirstNameChange = { editableMember.value = editableMember.value.copy(firstName = it) },
+                                middleName = editableMember.value.middleName ?: "", onMiddleNameChange = { editableMember.value = editableMember.value.copy(middleName = it) },
+                                lastName = editableMember.value.lastName, onLastNameChange = { editableMember.value = editableMember.value.copy(lastName = it) },
+                                town = editableMember.value.town, onTownChange = { editableMember.value = editableMember.value.copy(town = it) },
+                                childNumber = editableMember.value.childNumber?.toString() ?: "", onChildNumberChange = { editableMember.value = editableMember.value.copy(childNumber = it.toIntOrNull()) },
+                                comment = editableMember.value.comment ?: "", onCommentChange = { editableMember.value = editableMember.value.copy(comment = it) }
+                            )
+                        }
+                    } // ✅ AddImage, Editable Member Details
+                    item {
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text(text = "Created At: ${formatDateTime(member.createdAt)}", fontSize = 8.sp)
+                            Text(text = "Short Name: ${member.shortName}", fontSize = 8.sp, fontWeight = FontWeight.Bold)
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                            Button(
+                                onClick = {
+                                    //Log.d("Yogesh", "Member Details before save click : ${editableMember.value}")
+                                    Log.d("yogesh", "Parent before save btn press : ${editableMember.value.parentID} Old Parent first name : ${memberParent?.firstName}")
+                                    viewModel.updateMember(memberId = member.id, firstName = editableMember.value.firstName, middleName = editableMember.value.middleName ?: "", lastName = editableMember.value.lastName, town = editableMember.value.town, parentID = editableMember.value.parentID, spouseID = editableMember.value.spouseID, imageUri = editableMember.value.imageUri, childNumber = editableMember.value.childNumber, comment = editableMember.value.comment)
+                                    Toast.makeText(context, "Member details saved!", Toast.LENGTH_SHORT).show()
+                                },
+                                modifier = Modifier.weight(1f)
+                            ) { Text(text = "Save") }
+
+                            Spacer(modifier = Modifier.width(8.dp))
+
+                            Button(
+                                onClick = {
+                                    // Handle cancel action
+                                    navController.popBackStack()
+                                    Toast.makeText(context, "Action cancelled!", Toast.LENGTH_SHORT).show()
+                                },
+                                modifier = Modifier.weight(1f)
+                            ) { Text(text = "Cancel") }
+                        }
+                    } // ✅ Created, ShortName, Save Cancel Buttons
+                    item {
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                        ParentDetail(editableMember = editableMember, editableParent = editableParent, navController = navController, viewModel = viewModel, onImageClick = { zoomedImageUri = it })
+                    } // ✅ Parent Detail
+                    item {
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                        SpouseDetail(editableMember = editableMember, editableSpouse = editableSpouse, navController = navController, viewModel = viewModel, onImageClick = { zoomedImageUri = it })
+                    } // ✅ Spouse Detail
+                    item {
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                        ActionButtons(navController, viewModel, member)
+                    } // ✅ Action Buttons Familytree, Delete
+                }
+                // ✅ Image Zoom Overlay
+                zoomedImageUri?.let { ImageOverlay(it) { zoomedImageUri = null } }
+            }
+        }
+    }
+}
+
+// ✅ Loading State
+@Composable
+fun LoadingState() {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        CircularProgressIndicator()
+    }
+}
+
+// ✅ Empty State
+@Composable
+fun EmptyState() {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Text(text = "Member not found", fontWeight = FontWeight.Bold)
+    }
+}
+
+// ✅ Error State
+@Composable
+fun ErrorState(message: String) {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Text(text = "Error: $message", color = Color.Red, fontWeight = FontWeight.Bold)
+    }
+}
+
+// ✅ SuccessList State
+@Composable
+fun SuccessList() {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Text(text = "Member state changed to SuccessList", fontWeight = FontWeight.Bold)
+    }
+}
+
+// ✅ Image Zoom Overlay
+@Composable
+fun ImageOverlay(imageUri: String, onClose: () -> Unit) {
     Box(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(4.dp)
+        modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.8f)).clickable { onClose() },
+        contentAlignment = Alignment.Center
     ) {
-        LazyColumn(
+        Image(
+            painter = rememberAsyncImagePainter(imageUri),
+            contentDescription = "Zoomed Image",
+            modifier = Modifier.fillMaxWidth().padding(16.dp)
+        )
+    }
+}
+
+// ✅ Page Header with Title
+@Composable
+fun PageHeader() {
+    Column {
+        Text(
+            text = "Member Detail",
+            style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold)
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+    }
+}
+
+// ✅ Profile Image Handling
+@Composable
+fun AddImage(member: ThreeGen, imageUri: String?, onImageClick: (String) -> Unit, onImageUriChange: (String) -> Unit) {
+    val imagePickerLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        uri?.toString()?.let {
+            onImageUriChange(it) // ✅ Pass updated URI to parent
+        }
+    }
+
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Box(
             modifier = Modifier
-                .fillMaxSize()
+                .size(80.dp)
+                .clip(CircleShape)
+                .background(Color.LightGray)
+                .clickable { imageUri?.let { onImageClick(it) } },
+            contentAlignment = Alignment.Center
         ) {
-            // Page Header
-            item {
-                PageHeader(member = member)
-                Spacer(modifier = Modifier.height(8.dp))
-            }
-
-            // Profile Image
-            item {
-                AddImage(
-                    navController = navController,
-                    viewModel = viewModel,
-                    member = member,
-                    memberId = memberId,
-                    onImageClick = { uri -> zoomedImageUri = uri }
+            if (imageUri != null) {
+                Image(
+                    painter = rememberAsyncImagePainter(imageUri),
+                    contentDescription = "Profile Image",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
                 )
-                Spacer(modifier = Modifier.height(4.dp))
-            }
-
-            // Buttons Edit and Delete
-            item {
-                Buttons(
-                    navController = navController,
-                    viewModel = viewModel,
-                    member = member,
-                    memberId = memberId
-                )
-            }
-        }
-
-        // Zoomed Image Overlay
-        zoomedImageUri?.let { uri ->
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.8f))
-                    .clickable { zoomedImageUri = null },
-                contentAlignment = Alignment.Center
-            ) {
-                Image(painter = rememberAsyncImagePainter(uri), contentDescription = "Zoomed Image", modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp))
-            }
-        }
-    }
-}
-
-@Composable
-fun PageHeader(member: ThreeGen?, modifier: Modifier = Modifier) {
-    Text(
-        text = "Member Detail",
-        style = MaterialTheme.typography.headlineSmall.copy(
-            fontWeight = FontWeight.Bold
-        )
-    )
-    Spacer(modifier = Modifier.height(16.dp))
-
-    // Member Name
-    Text(
-        text = "${member?.firstName} ${member?.middleName} ${member?.lastName}",
-        style = MaterialTheme.typography.headlineSmall.copy(
-            fontWeight = FontWeight.Bold
-        )
-    )
-}
-
-@Composable
-fun AddImage(navController: NavHostController, viewModel: ThreeGenViewModel, member: ThreeGen?, modifier: Modifier = Modifier, memberId: Int, onImageClick: (String) -> Unit) {
-    // States for text field values
-    val firstNameState = remember { mutableStateOf("") }
-    val middleNameState = remember { mutableStateOf("") }
-    val lastNameState = remember { mutableStateOf("") }
-    val townState = remember { mutableStateOf("") }
-    val parentIDState = remember { mutableStateOf<Int?>(null) }
-    val spouseIDState = remember { mutableStateOf<Int?>(null) }
-    var showError by remember { mutableStateOf(false) }
-    val context = LocalContext.current
-    var imageUriState by remember { mutableStateOf<String?>(null) }
-
-    // Update state values when member data changes
-    LaunchedEffect(member) {
-        member?.let {
-            firstNameState.value = it.firstName
-            middleNameState.value = it.middleName
-            lastNameState.value = it.lastName
-            townState.value = it.town
-            parentIDState.value = it.parentID
-            spouseIDState.value = it.spouseID
-            imageUriState = it.imageUri
-        }
-    }
-
-    // Image Picker Launcher
-    val imagePickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri ->
-        imageUriState = uri?.toString()
-    }
-
-    Column(modifier = modifier.padding(0.dp)) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            // Profile Image
-            if (imageUriState != null) {
-                Image(painter = rememberAsyncImagePainter(imageUriState), contentDescription = "Profile Image", modifier = Modifier
-                        .size(100.dp)
-                        .clickable { imageUriState?.let { uri -> onImageClick(uri) } })
             } else {
-                Icon(imageVector = Icons.Default.PersonAdd, contentDescription = "No Profile Image", modifier = Modifier
-                        .size(100.dp)
-                        .clickable { imagePickerLauncher.launch("image/*") })
-            }
-
-            // Member Details
-            Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
-                // Text fields for editing member details
-                OutlinedTextField(
-                    value = firstNameState.value,
-                    onValueChange = { firstNameState.value = it },
-                    label = { Text("First Name") },
-                    isError = showError && firstNameState.value.isBlank(),
-                    textStyle = TextStyle(fontSize = 14.sp),
-                    modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedTextField(
-                    value = middleNameState.value,
-                    onValueChange = { middleNameState.value = it },
-                    label = { Text("Middle Name") },
-                    isError = showError && middleNameState.value.isBlank(),
-                    textStyle = TextStyle(fontSize = 14.sp),
-                    modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedTextField(
-                    value = lastNameState.value,
-                    onValueChange = { lastNameState.value = it },
-                    label = { Text("Last Name") },
-                    isError = showError && lastNameState.value.isBlank(),
-                    textStyle = TextStyle(fontSize = 14.sp),
-                    modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedTextField(
-                    value = townState.value,
-                    onValueChange = { townState.value = it },
-                    label = { Text("Town") },
-                    isError = showError && townState.value.isBlank(),
-                    textStyle = TextStyle(fontSize = 14.sp),
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Row {
-                    Text(text = "Short Name: ${member?.shortName ?: "N/A"}", fontSize = 10.sp, modifier = Modifier.weight(0.7f))
-                    Text(text = "ID: ${member?.id ?: "N/A"}", fontSize = 10.sp)
-                }
+                Icon(Icons.Default.PersonAdd, contentDescription = "No Profile Image", modifier = Modifier.size(40.dp))
             }
         }
+        Button(onClick = { imagePickerLauncher.launch("image/*") }, modifier = Modifier.padding(top = 8.dp)) {
+            Text(text = "Change")
+        }
+    }
+}
 
-        // Button change image
-        Button(onClick = { imagePickerLauncher.launch("image/*") }, modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 8.dp)) { Text(text = "Change Image") }
+// ✅ Editable Member Details
+@Composable
+fun EditableMemberDetails(firstName: String, onFirstNameChange: (String) -> Unit, middleName: String, onMiddleNameChange: (String) -> Unit, lastName: String, onLastNameChange: (String) -> Unit, town: String, onTownChange: (String) -> Unit, childNumber: String, onChildNumberChange: (String) -> Unit, comment: String, onCommentChange: (String) -> Unit) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        OutlinedTextField(value = firstName, onValueChange = onFirstNameChange, label = { Text("First Name", style = TextStyle(fontSize = 8.sp), fontWeight = FontWeight.Bold) }, textStyle = TextStyle(fontSize = 14.sp), modifier = Modifier.fillMaxWidth())
+        OutlinedTextField(value = middleName, onValueChange = onMiddleNameChange, label = { Text("Middle Name", style = TextStyle(fontSize = 8.sp), fontWeight = FontWeight.Bold) }, textStyle = TextStyle(fontSize = 14.sp), modifier = Modifier.fillMaxWidth())
+        OutlinedTextField(value = lastName, onValueChange = onLastNameChange, label = { Text("Last Name", style = TextStyle(fontSize = 8.sp), fontWeight = FontWeight.Bold) }, textStyle = TextStyle(fontSize = 14.sp), modifier = Modifier.fillMaxWidth())
+        OutlinedTextField(value = town, onValueChange = onTownChange, label = { Text("Town", style = TextStyle(fontSize = 8.sp), fontWeight = FontWeight.Bold) }, textStyle = TextStyle(fontSize = 14.sp), modifier = Modifier.fillMaxWidth())
+        OutlinedTextField(value = childNumber, onValueChange = onChildNumberChange, label = { Text("Child Number of it's Parent", style = TextStyle(fontSize = 8.sp), fontWeight = FontWeight.Bold) }, textStyle = TextStyle(fontSize = 14.sp), modifier =  Modifier.fillMaxWidth())
+        OutlinedTextField(value = comment, onValueChange = onCommentChange, label = { Text("Comment", style = TextStyle(fontSize = 8.sp, fontWeight = FontWeight.Bold)) }, textStyle = TextStyle(fontSize = 14.sp), modifier = Modifier.fillMaxWidth(), maxLines = 5)
+    }
+}
 
-        // Save Button
-        Button(onClick = {
-                // Save the edited member details
-                if (firstNameState.value.isBlank() || middleNameState.value.isBlank() || lastNameState.value.isBlank() || townState.value.isBlank()) {
-                    showError = true
-                } else {
-                    showError = false
-                    viewModel.updateMember(
-                        memberId,
-                        firstNameState.value.trim(),
-                        middleNameState.value.trim(),
-                        lastNameState.value.trim(),
-                        townState.value.trim(),
-                        parentIDState.value,
-                        spouseIDState.value,
-                        shortName = member?.shortName ?: "",
-                        imageUri = imageUriState ?: ""
-                    )
-                    Toast.makeText(context, "Saved", Toast.LENGTH_SHORT).show()
-                }
-            }, modifier = Modifier
-            .fillMaxWidth()
-            .padding(2.dp)) { Text(text = "Save") }
+// ✅ Parent Section
+@Composable
+fun ParentDetail(editableMember: MutableState<ThreeGen>, editableParent: MutableState<ThreeGen?>, navController: NavHostController, viewModel: ThreeGenViewModel, onImageClick: (String) -> Unit) {
+    val selectedParent = navController.currentBackStackEntry?.savedStateHandle?.getLiveData<ThreeGen>("selectedParent")?.observeAsState()
+    selectedParent?.value?.let {
+        Log.d("yogesh", "selectedParent.value: ${selectedParent.value}")
+        editableMember.value = editableMember.value.copy(parentID = it.id)
+        Log.d("yogesh", "Old Parent.value: ${editableMember.value.parentID}")
+        editableParent.value = it // Update editableParent with the selected parent
+        Log.d("yogesh", "New selectedParent.value: ${selectedParent.value!!.firstName}")
+        navController.currentBackStackEntry?.savedStateHandle?.remove<ThreeGen>("selectedParent")
+    }
 
-        // created at text
-        Text(text = "Created At: ${formatDateTime(member?.createdAt)}", fontSize = 8.sp)
+    val newParentState by viewModel.memberState.collectAsState()
+    //Log.d("yogesh", "newParentState : $newParentState")
 
-        // ParentInformation
-        HorizontalDivider(thickness = 1.dp, color = Color.Gray)
-        Text(text = "Parent:", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-            member?.parentID?.let { parentId ->
-                val parentMember by viewModel.getMemberById(parentId).observeAsState()
-                parentMember?.let { parent ->
-                    val imageUri = parent.imageUri // Local variable to hold imageUri
+    Column(modifier = Modifier.fillMaxWidth().padding(8.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(text = "Parent Detail", style = MaterialTheme.typography.titleMedium)
+            Log.d("yogesh", "before onclick parent add")
+            Button(
+                onClick = {
+                    Log.d("yogesh", "before try in member detail file at on click of add/change parent")
+                    try {
+                        Log.d("yogesh", "editableMember.value: ${editableMember.value}")
+                        navController.currentBackStackEntry?.let { backStackEntry ->
+                            Log.d("yogesh", "backStackEntry is not null")
+                            // Save the entire editableParent object
+                            backStackEntry.savedStateHandle["selectedParent"] = editableParent.value
+                            Log.d("yogesh", "after backstack entry saved - Value: ${editableParent.value}")
 
-                    if (imageUri != null) {
+                            // Verify the value is set
+                            val savedValue = backStackEntry.savedStateHandle.get<ThreeGen>("selectedParent")
+                            Log.d("yogesh", "Saved value in backStackEntry: $savedValue")
+                        } ?: run {
+                            Log.e("yogesh", "backStackEntry inside ?. run")
+                        }
+                        Log.d("yogesh", "before navigation in member detail")
+                        navController.navigate(SelectMemberParent)
+                        Log.d("yogesh", "after navigation in member detail")
+                    } catch (e: Exception) {
+                        Log.e("selectMember", "Error saving state or navigating: ${e.message}")
+                    }
+                },
+                modifier = Modifier.padding(start = 8.dp)
+            ) {
+                Text(text = "Add/Change Parent")
+            }
+        }
+        // Check if parentID is not null before rendering
+        if (editableMember.value.parentID != null) {
+            // Log to show memberID and parentID
+            // Log.d("vyas", "memberid is : ${editableMember.value.id} and parent id : ${editableMember.value.parentID}")
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier.size(48.dp).clip(CircleShape).background(Color.Gray)
+                ) {
+                    // Display parent image if available
+                    editableParent.value?.imageUri?.let { imageUri ->
                         Image(
-                            painter = rememberAsyncImagePainter(imageUri),
-                            contentDescription = "Profile Image",
-                            modifier = Modifier
-                                .size(56.dp)
-                                .clickable { onImageClick(imageUri) }
+                            painter = rememberAsyncImagePainter(model = imageUri),
+                            contentDescription = "Parent Image",
+                            modifier = Modifier.fillMaxSize().clickable { onImageClick(imageUri) },
+                            contentScale = ContentScale.Crop
                         )
-                    } else {
-                        Icon(imageVector = Icons.Default.PersonAdd, contentDescription = "No Profile Image", modifier = Modifier.size(56.dp))
-                    }
-
-                    Spacer(modifier = Modifier.width(8.dp))
-                    // parent name
-                    Column(verticalArrangement = Arrangement.spacedBy(0.dp)
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(4.dp)
-                        ) {
-                            Text(text = "${parent.firstName} ${parent.middleName} ${parent.lastName}", modifier = Modifier.weight(1f), fontSize = 14.sp)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            IconButton(onClick = { parentIDState.value = null }) {
-                                Icon(imageVector = Icons.Default.Delete, contentDescription = "Delete")
-                            }
-                        }
-                        Text(text = "Town: ${parent.town}      ID: ${parent.id}", fontSize = 14.sp)
                     }
                 }
-            }
-        }
-
-        // Spouse Information
-        HorizontalDivider(thickness = 1.dp, color = Color.Gray)
-        Text(text = "Spouse:", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-            member?.spouseID?.let { spouseId ->
-                val spouseMember by viewModel.getMemberById(spouseId).observeAsState()
-                spouseMember?.let { spouse ->
-                    val imageUri = spouse.imageUri // Local variable to hold imageUri
-                    if (imageUri != null) {
-                        Image(painter = rememberAsyncImagePainter(imageUri), contentDescription = "Profile Image", modifier = Modifier.size(56.dp).clickable { onImageClick(imageUri) })
-                    } else { Icon(imageVector = Icons.Default.PersonAdd, contentDescription = "No Profile Image", modifier = Modifier.size(56.dp))
+                Column {
+                    // Display parent's full name if available
+                    editableParent.value?.let { parent ->
+                        Text(
+                            text = "${parent.firstName} ${parent.middleName} ${parent.lastName}",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Text(
+                            text = parent.town,
+                            style = MaterialTheme.typography.bodySmall
+                        )
                     }
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Column(verticalArrangement = Arrangement.spacedBy(0.dp)
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(0.dp)) {
-                            Text(text = "${spouse.firstName} ${spouse.middleName} ${spouse.lastName}", modifier = Modifier.weight(1f), fontSize = 14.sp)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            IconButton(onClick = { spouseIDState.value = null }) {
-                                Icon(imageVector = Icons.Default.Delete, contentDescription = "Delete")
-                            }
-                        }
-                        Text(text = "Town: ${spouse.town}      ID: ${spouse.id}", fontSize = 14.sp)
+                }
+                IconButton(
+                    onClick = {
+                        editableMember.value = editableMember.value.copy(parentID = null)
+                        editableParent.value = null // Clear editableParent
                     }
+                ) {
+                    Icon(imageVector = Icons.Default.Delete, contentDescription = "Delete Parent")
                 }
             }
         }
     }
 }
 
+// ✅ Spouse Section
 @Composable
-fun Buttons(navController: NavHostController, viewModel: ThreeGenViewModel, member: ThreeGen?, modifier: Modifier = Modifier, memberId: Int) {
-    HorizontalDivider(thickness = 1.dp, color = Color.Gray) // Add a divider here
+fun SpouseDetail(editableMember: MutableState<ThreeGen>, editableSpouse: MutableState<ThreeGen?>, navController: NavHostController, viewModel: ThreeGenViewModel, onImageClick: (String) -> Unit) {
+    val selectedSpouse = navController.currentBackStackEntry?.savedStateHandle?.getLiveData<ThreeGen>("selectedSpouse")?.observeAsState()
+    selectedSpouse?.value?.let {
+        editableMember.value = editableMember.value.copy(spouseID = it.id)
+        editableSpouse.value = it // Update editableParent with the selected parent
+        navController.currentBackStackEntry?.savedStateHandle?.remove<ThreeGen>("selectedSpouse")
+    }
 
-    Spacer(modifier = Modifier.height(16.dp))
+    val newSpouseState by viewModel.memberState.collectAsState()
 
-    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        // First Row
+
+    Column(modifier = Modifier.fillMaxWidth().padding(8.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
+            Text(text = "Spouse Detail", style = MaterialTheme.typography.titleMedium)
+            Button(
+                onClick = {
+                    //Log.d("yogesh", "before try in member detail file at on click of add/change parent")
+                    try {
+                        //Log.d("yogesh", "editableMember.value: ${editableMember.value}")
+                        navController.currentBackStackEntry?.let { backStackEntry ->
+                            //Log.d("yogesh", "backStackEntry is not null")
+                            // Save the entire editableParent object
+                            backStackEntry.savedStateHandle["selectedSpouse"] = editableSpouse.value
+                            //Log.d("yogesh", "after backstack entry saved - Value: ${editableParent.value}")
+                            val savedValue = backStackEntry.savedStateHandle.get<ThreeGen>("selectedSpouse")
+                            //Log.d("yogesh", "Saved value in backStackEntry: $savedValue")
+                        } ?: run {
+                            //Log.e("yogesh", "backStackEntry inside ?. run")
+                        }
+                        //Log.d("yogesh", "before navigation in member detail")
+                        navController.navigate(SelectMemberSpouse)
+                        //Log.d("yogesh", "after navigation in member detail")
+                    } catch (e: Exception) {
+                        //Log.e("selectMember", "Error saving state or navigating: ${e.message}")
+                    }
+                },
+                modifier = Modifier.padding(start = 8.dp)
+            ) {
+                Text(text = "Add/Change Spouse")
+            }
+        }
+        // Check if spouseID is not null before rendering
+        if (editableMember.value.spouseID != null) {
+            Row(modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalAlignment = Alignment.CenterVertically)
+            {
+                Box(
+                    modifier = Modifier.size(48.dp).clip(CircleShape).background(Color.Gray)
+                ) {
+                    // Display parent image if available
+                    editableSpouse.value?.imageUri?.let { imageUri ->
+                        Image(
+                            painter = rememberAsyncImagePainter(model = imageUri),
+                            contentDescription = "Parent Image",
+                            modifier = Modifier.fillMaxSize().clickable { onImageClick(imageUri) },
+                            contentScale = ContentScale.Crop
+                        )
+                    }
+                }
+                Column {
+                    // Display parent's full name if available
+                    editableSpouse.value?.let { spouse ->
+                        Text(
+                            text = "${spouse.firstName} ${spouse.middleName} ${spouse.lastName}",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Text(
+                            text = spouse.town,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
+                IconButton(
+                    onClick = {
+                        editableMember.value = editableMember.value.copy(spouseID = null)
+                        editableSpouse.value = null // Clear editableParent
+                    }
+                ) {
+                    Icon(imageVector = Icons.Default.Delete, contentDescription = "Delete Parent")
+                }
+            }
+        }
+    }
+}
+
+// ✅ Buttons for Actions
+@Composable
+fun ActionButtons(navController: NavHostController, viewModel: ThreeGenViewModel, member: ThreeGen) {
+    Column {
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            // FamilyTree button
+            Button(onClick = { navController.navigate(MemberFamilyTree(member.id)) }) { Text(text = "Family Tree") }
+            // call delete button
             DeleteButton(member, viewModel, navController)
-            Button(
-                onClick = { navController.navigate(MemberFamilyTree(id = member!!.id)) },
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(text = "Family Tree")
-            }
-        }
-
-        // Second Row
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            // Select Parent Button
-            Button(
-                onClick = { navController.navigate(SelectParent(id = memberId)) },
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(text = "Change Parent")
-            }
-
-            // Select Spouse Button
-            Button(
-                onClick = { navController.navigate(SelectSpouse(id = memberId)) },
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(text = "Change Spouse")
-            }
         }
     }
-}
+} // called from lazzy column as item
 
+// ✅ Delete Button with Confirmation
 @Composable
-fun DeleteButton(member: ThreeGen?, viewModel: ThreeGenViewModel, navController: NavController) {
-    var showDialog by remember { mutableStateOf(false) }
+fun DeleteButton(member: ThreeGen, viewModel: ThreeGenViewModel, navController: NavHostController) {
     val context = LocalContext.current
+    var showDialog by remember { mutableStateOf(false) }
 
     Button(
-        onClick = { showDialog = true }, // 🔹 Show confirmation dialog
-        //modifier = Modifier.weight(1f),
+        onClick = { showDialog = true },
         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
     ) {
         Text(text = "Delete Member")
@@ -395,29 +471,17 @@ fun DeleteButton(member: ThreeGen?, viewModel: ThreeGenViewModel, navController:
 
     if (showDialog) {
         AlertDialog(
-            onDismissRequest = { showDialog = false }, // 🔹 Close dialog on dismiss
+            onDismissRequest = { showDialog = false },
             title = { Text("Confirm Delete") },
-            text = { Text("Are you sure you want to delete this member? This action cannot be undone.") },
             confirmButton = {
-                Button(
-                    onClick = {
-                        showDialog = false
-                        member?.let { viewModel.deleteThreeGen(it) } // 🔹 Delete the member
-                        // 🔹 Save action (if needed)
-                        Toast.makeText(context, "Member Deleted", Toast.LENGTH_SHORT).show()
-                        navController.popBackStack() // 🔹 Navigate back
-                    }
-                ) {
-                    Text("Yes, Delete")
-                }
+                Button(onClick = {
+                    viewModel.deleteMember(member.id)
+                    navController.popBackStack()
+                    showDialog = false
+                    Toast.makeText(context, "Member deleted", Toast.LENGTH_SHORT).show()
+                }) { Text("Yes, Delete") }
             },
-            dismissButton = {
-                Button(
-                    onClick = { showDialog = false } // 🔹 Cancel delete
-                ) {
-                    Text("Cancel")
-                }
-            }
+            dismissButton = { Button(onClick = { showDialog = false }) { Text("Cancel") } }
         )
     }
-}
+} // called from action buttons
