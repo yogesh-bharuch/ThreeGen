@@ -105,7 +105,7 @@ fun MemberDetailScreen(
                                     viewModel.updateMember(memberId = member.id, firstName = editableMember.value.firstName, middleName = editableMember.value.middleName ?: "", lastName = editableMember.value.lastName, town = editableMember.value.town, parentID = editableMember.value.parentID, spouseID = editableMember.value.spouseID, imageUri = editableMember.value.imageUri, childNumber = editableMember.value.childNumber, comment = editableMember.value.comment)
                                     Toast.makeText(context, "Member details saved!", Toast.LENGTH_SHORT).show()
                                 },
-                                modifier = Modifier.weight(1
+                                modifier = Modifier.weight(1f)
                             ) { Text(text = "Save") }
 
                             Spacer(modifier = Modifier.width(8.dp))
