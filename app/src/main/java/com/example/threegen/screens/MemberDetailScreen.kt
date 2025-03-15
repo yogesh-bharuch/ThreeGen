@@ -50,7 +50,7 @@ fun MemberDetailScreen(
     val memberState by viewModel.memberState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     var zoomedImageUri by remember { mutableStateOf<String?>(null) }
-
+    // test 
     LaunchedEffect(memberId) {
         //Log.d("MemberDetailScreen", "Calling fetchMemberDetails for ID from launched effect : $memberState")
         viewModel.fetchMemberDetails(memberId)
