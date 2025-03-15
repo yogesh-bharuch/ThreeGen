@@ -153,14 +153,7 @@ fun FamilyTreeScreen(
 }
 
 @Composable
-fun FamilyTreeItem(
-    navController: NavController,
-    member: ThreeGen,
-    members: List<ThreeGen>,
-    indent: Int = 0,
-    generation: Int = 1,
-    onImageClick: (String) -> Unit
-) {
+fun FamilyTreeItem(navController: NavController, member: ThreeGen, members: List<ThreeGen>, indent: Int = 0, generation: Int = 1, onImageClick: (String) -> Unit) {
     val isDarkTheme = isSystemInDarkTheme()
     val generationColors = if (isDarkTheme) {
         listOf(Color(0xFF263238), Color(0xFF37474F), Color(0xFF455A64), Color(0xFF1C313A), Color(0xFF546E7A), Color(0xFF2C3E50), Color(0xFF3E4A59))
@@ -197,6 +190,7 @@ fun FamilyTreeItem(
                 Spacer(modifier = Modifier.width(4.dp))
                 Column(modifier = Modifier.weight(1f))
                 {
+                    Text("Generation: $generation", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
                     Text("${member.firstName} ${member.middleName} ${member.lastName}", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
                     Text("Town: ${member.town}")
                 } // member name and town display
@@ -249,108 +243,8 @@ fun FamilyTreeItem(
                 .sortedWith(compareBy(nullsLast()) { it.childNumber }) // Sort by childNumber, placing nulls last
                 .forEach { child ->
                 // Recursively display children
-                FamilyTreeItem(navController = navController, member = child, members = members, indent = indent + 1, onImageClick = onImageClick)
+                FamilyTreeItem(navController = navController, member = child, members = members, indent = indent + 1, generation = generation + 1, onImageClick = onImageClick)
             }
         } // Recursively display children
     }
 }
-
-
-/*
- @Composable
-fun FamilyTreeItem(navController: NavController, member: ThreeGen, members: List<ThreeGen>, indent: Int = 0, onImageClick: (String) -> Unit) {
-    val isDarkTheme = isSystemInDarkTheme()
-    val generationColors = if (isDarkTheme) {
-        listOf(Color(0xFF263238), Color(0xFF37474F), Color(0xFF455A64), Color(0xFF1C313A), Color(0xFF546E7A), Color(0xFF2C3E50), Color(0xFF3E4A59))
-    } else {
-        listOf(Color(0xFFBBDEFB), Color(0xFFC8E6C9), Color(0xFFFFF9C4), Color(0xFFFFCCBC), Color(0xFFD1C4E9), Color(0xFFFFF176), Color(0xFFFF8A65))
-    }
-    val backgroundColor = generationColors[indent % generationColors.size]
-    var expanded by remember { mutableStateOf(false) }
-
-    Column(modifier = Modifier.padding(start = (indent + 6).dp, bottom = 8.dp).fillMaxWidth().background(color = backgroundColor).clickable { expanded = !expanded }
-    ) {
-        Column(modifier = Modifier.padding(start = 4.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth())
-            {
-                if (!member.imageUri.isNullOrEmpty())
-                {
-                    AsyncImage(
-                        model = member.imageUri,
-                        contentDescription = "Profile Image",
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .size(48.dp)
-                            .clip(CircleShape)
-                            .padding(0.dp)
-                            .clickable { onImageClick(member.imageUri ?: "") }
-                    )
-                } else {
-                    Icon(imageVector = Icons.Default.Person, contentDescription = "Default Person Icon", modifier = Modifier
-                        .size(48.dp)
-                        .clip(CircleShape)
-                        .padding(0.dp)
-                        .clickable { })
-                } // member image display
-                Spacer(modifier = Modifier.width(4.dp))
-                Column(modifier = Modifier.weight(1f))
-                {
-                    Text("${member.firstName} ${member.middleName} ${member.lastName}", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
-                    Text("Town: ${member.town}")
-                } // member name and town display
-            } // Member display Section
-            member.spouseID?.let { spouseId ->
-                members.find { it.id == spouseId }?.let { spouse ->
-                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier
-                            .fillMaxWidth()
-                            .background(color = backgroundColor)
-                            .clickable { navController.navigate(MemberFamilyTree(spouseId)) }) {
-                        if (!spouse.imageUri.isNullOrEmpty())
-                        {
-                            AsyncImage(
-                                model = spouse.imageUri,
-                                contentDescription = "Spouse Image",
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier
-                                    .size(48.dp)
-                                    .clip(CircleShape)
-                                    .padding(0.dp)
-                                    .clickable { onImageClick(spouse.imageUri ?: "") }
-                            )
-                        } else {
-                            Icon(
-                                imageVector = Icons.Default.Person,
-                                contentDescription = "Default Spouse Icon",
-                                modifier = Modifier
-                                    .size(48.dp)
-                                    .clip(CircleShape)
-                                    .padding(0.dp)
-                            )
-                        } // spouse image display
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Column(modifier = Modifier.weight(1f))
-                        {
-                            Text("Spouse", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
-                            Text("${spouse.firstName} ${spouse.middleName} ${spouse.lastName}", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
-                            //Spouse name and town display
-                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text("Town: ${spouse.town}")
-                                Icon(imageVector = Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Go to Spouse Detail")
-                            }
-                        } // spouse name and town display
-                    }
-                }
-            } // Spouse display Section
-        }
-        if (expanded) {
-            members.filter { it.parentID == member.id }
-                .sortedWith(compareBy(nullsLast()) { it.childNumber }) // Sort by childNumber, placing nulls last
-                .forEach { child ->
-                // Recursively display children
-                FamilyTreeItem(navController = navController, member = child, members = members, indent = indent + 1, onImageClick = onImageClick)
-            }
-        } // Recursively display children
-    }
-}
-
-* */

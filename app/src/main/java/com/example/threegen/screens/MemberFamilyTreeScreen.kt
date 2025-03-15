@@ -166,7 +166,7 @@ fun MemberFamilyTreeScreen(
 }
 
 @Composable
-fun CollapsibleFamilyTreeItem(navController: NavHostController, member: ThreeGen, members: List<ThreeGen>, indent: Int = 0, onImageClick: (String) -> Unit, expandedMemberIds: Set<String>, selectedMemberId: String) {
+fun CollapsibleFamilyTreeItem(navController: NavHostController, member: ThreeGen, members: List<ThreeGen>, indent: Int = 0, generation: Int = 1, onImageClick: (String) -> Unit, expandedMemberIds: Set<String>, selectedMemberId: String) {
     val isDarkTheme = isSystemInDarkTheme()
     val generationColors = if (isDarkTheme) {
         listOf(
@@ -205,6 +205,7 @@ fun CollapsibleFamilyTreeItem(navController: NavHostController, member: ThreeGen
                 Spacer(modifier = Modifier.width(4.dp))
                 Column(modifier = Modifier.weight(1f))
                 {
+                    Text("Generation: $generation", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
                     Text( "${member.firstName} ${member.middleName} ${member.lastName}", style = MaterialTheme.typography.bodyMedium.copy(color = textColor), fontWeight = FontWeight.Bold)
                     Text("Town: ${member.town}", color = textColor)
                 } // spouse name and town display
@@ -257,17 +258,11 @@ fun CollapsibleFamilyTreeItem(navController: NavHostController, member: ThreeGen
         }
         if (expanded) {
             // Display children recursively when expanded
-            members.filter { it.parentID == member.id }.forEach { child ->
-                CollapsibleFamilyTreeItem(
-                    navController = navController,
-                    member = child,
-                    members = members,
-                    indent = indent + 1,
-                    onImageClick = onImageClick,
-                    expandedMemberIds = expandedMemberIds,
-                    selectedMemberId = selectedMemberId
-                )
+            members.filter { it.parentID == member.id }
+                .sortedWith(compareBy(nullsLast()) { it.childNumber }) // Sort by childNumber, placing nulls last
+                .forEach { child ->
+                CollapsibleFamilyTreeItem(navController = navController, member = child, members = members, indent = indent + 1, generation = generation + 1, onImageClick = onImageClick, expandedMemberIds = expandedMemberIds, selectedMemberId = selectedMemberId)
             }
-        }
+        } // Recursively display children
     }
 }
