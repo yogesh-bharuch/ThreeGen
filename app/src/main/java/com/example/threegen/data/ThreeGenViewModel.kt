@@ -4,6 +4,7 @@ import android.util.Log
 import android.widget.Toast
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.asFlow
 import androidx.lifecycle.asLiveData
@@ -17,6 +18,7 @@ import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.util.UUID
 
 class ThreeGenViewModel(
     private val dao: ThreeGenDao,
@@ -24,10 +26,7 @@ class ThreeGenViewModel(
 ) : ViewModel()
 {
     private val repository: ThreeGenRepository
-    //private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()
-   // private val firestore = FirebaseFirestore.getInstance()
     private val auth: FirebaseAuth = FirebaseAuth.getInstance()
-    private val collectionRef = firestore.collection("ThreeGenMembers")
 
     init {
         val threeGenDao = MainApplication.threeGenDatabase.getThreeGenDao()
@@ -37,24 +36,10 @@ class ThreeGenViewModel(
     // ✅ Holds the full list of members from the database
     private val _threeGenList = MutableStateFlow<List<ThreeGen>>(emptyList())
     val threeGenList: StateFlow<List<ThreeGen>> = _threeGenList
+
         // ✅ Prevent unnecessary updates
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
-    //--------------------------
-    // Convert Flow to LiveData for Compose UI
-    val allMembersLiveData: LiveData<List<ThreeGen>> = threeGenList.asLiveData()
-    /*// Function to fetch members and update LiveData
-    fun fetchThreeGenList() {
-        viewModelScope.launch {
-            try {
-                val members = repository.getAllMembers()
-                _threeGenList.value = members
-            } catch (e: Exception) {
-                Log.e("MemberViewModel", "Error fetching members: ${e.message}")
-            }
-        }
-    }*/
-    //--------------------------
 
     // ✅ UI State management for the list
     private val _memberState = MutableStateFlow<MemberState>(MemberState.Loading)
@@ -67,6 +52,7 @@ class ThreeGenViewModel(
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
 
     // ✅ Ensure filtering is applied correctly
+/*
     @OptIn(FlowPreview::class)
     val filteredMembers: StateFlow<List<ThreeGen>> = _searchQuery
         .debounce(300) // Prevents excessive updates while typing
@@ -75,7 +61,7 @@ class ThreeGenViewModel(
         }
         .distinctUntilChanged() // ✅ Avoid recompositions if the result is the same
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
-
+*/
     // ✅ Fetches members and updates UI state
     fun fetchMembers() {
         viewModelScope.launch {
@@ -98,7 +84,8 @@ class ThreeGenViewModel(
         _searchQuery.value = query
     }
 
-    // ✅ Fetches a single member's state
+
+    /*// ✅ Fetches a single member's state
     fun getMemberState(memberId: String): StateFlow<MemberState> {
         val stateFlow = MutableStateFlow<MemberState>(MemberState.Loading)
 
@@ -124,10 +111,10 @@ class ThreeGenViewModel(
 
         return stateFlow.asStateFlow()
     }
-
-    //private val fetchedMemberIds = mutableSetOf<String>()
-    // private val fetchedMemberIds = mutableSetOf<String>()
+    */
+    /*
     fun fetchMemberDetails(memberId: String) {
+
         viewModelScope.launch {
             _memberState.value = MemberState.Loading
             Log.d("MemberDetailViewModel", "State updated: Loading") // ✅ Log when loading starts
@@ -150,9 +137,92 @@ class ThreeGenViewModel(
             }
         }
     }
+*/
+    fun fetchMemberDetails(memberId: String?) {
+        viewModelScope.launch {
+            Log.d("MemberDetailViewModel", "fetchMemberDetails called with memberId: $memberId") // ✅ Log memberId
+            _memberState.value = MemberState.Loading
+            Log.d("MemberDetailViewModel", "State updated: Loading") // ✅ Log when loading starts
+
+            try {
+                if (memberId.isNullOrEmpty()) {
+                    // Return a blank member object for new entries
+                    val blankMember = ThreeGen(
+                        firstName = "",
+                        middleName = null,
+                        lastName = "",
+                        town = "",
+                        shortName = "", // Will be generated later in ViewModel
+                        childNumber = null,
+                        comment = null,
+                        imageUri = null,
+                        parentID = null,
+                        spouseID = null,
+                        createdBy = ""
+                    )
+                    _memberState.value = MemberState.Success(blankMember, null, null)
+                    Log.d("MemberDetailViewModel", "State updated: Success with blank member") // ✅ Log blank member success
+                } else {
+                    // Fetch existing member for editing
+                    val member = repository.getMemberById(memberId).asFlow().firstOrNull()
+                    val parent = member?.parentID?.let { repository.getMemberById(it).asFlow().firstOrNull() }
+                    val spouse = member?.spouseID?.let { repository.getMemberById(it).asFlow().firstOrNull() }
+
+                    _memberState.value = if (member != null) {
+                        Log.d("MemberDetailViewModel", "State updated: Success with existing member") // ✅ Log success
+                        MemberState.Success(member, parent, spouse)
+                    } else {
+                        Log.d("MemberDetailViewModel", "State updated: Empty") // ✅ Log empty state
+                        MemberState.Empty
+                    }
+                }
+            } catch (e: Exception) {
+                Log.d("MemberDetailViewModel", "State updated: Error - ${e.message}") // ✅ Log error details
+                _memberState.value = MemberState.Error(e.message ?: "Unknown error")
+            }
+        }
+    }
+
+    //-----------------------------------
+    private val _editableParent = MutableLiveData<ThreeGen?>()
+    val editableParent: LiveData<ThreeGen?> get() = _editableParent
+
+    // Function to update the editable parent
+    fun setEditableParent(membersParent: ThreeGen) {
+        _editableParent.value = membersParent
+    }
+
+    // Function to clear the editable Spouse (optional)
+    fun clearEditableParent() {
+        _editableParent.value = null
+    }
+
+    private val _editableSpouse = MutableLiveData<ThreeGen?>()
+    val editableSpouse: LiveData<ThreeGen?> get() = _editableSpouse
+
+    // Function to update the editable parent
+    fun setEditableSpouse(membersSpouse: ThreeGen) {
+        _editableSpouse.value = membersSpouse
+    }
+
+    // Function to clear the editable parent (optional)
+    fun clearEditableSpouse() {
+        _editableSpouse.value = null
+    }
+    //-----------------------------------
 
     // ✅ Adds a new member to the database
-    fun addThreeGen(firstName: String, middleName: String, lastName: String, town: String, imageUri: String?, parentID: String?, spouseID: String?, childNumber: Int? = 1, comment: String? = null) {
+    fun addThreeGen(
+        firstName: String,
+        middleName: String,
+        lastName: String,
+        town: String,
+        imageUri: String?,
+        parentID: String?,
+        spouseID: String?,
+        childNumber: Int? = 1,
+        comment: String? = null
+    ) {
         if (firstName.isBlank() || middleName.isBlank() || lastName.isBlank() || town.isBlank()) {
             Log.e("ThreeGenViewModel", "Validation failed: All name fields and town are required")
             return

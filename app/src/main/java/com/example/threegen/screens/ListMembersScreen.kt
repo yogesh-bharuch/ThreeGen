@@ -11,6 +11,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -30,14 +34,16 @@ import com.example.threegen.data.ThreeGenViewModel
 import com.example.threegen.util.MemberState
 import kotlinx.coroutines.FlowPreview
 
-@OptIn(FlowPreview::class) // ✅ Opt-in for debounce
+@OptIn(FlowPreview::class, ExperimentalMaterial3Api::class) // ✅ Opt-in for debounce
 @Composable
 fun ListMembersScreen(
     navController: NavHostController,
     viewModel: ThreeGenViewModel,
     modifier: Modifier = Modifier
-) {
-    LaunchedEffect(Unit) {
+)
+{
+    LaunchedEffect(Unit)
+    {
         viewModel.fetchMembers() // ✅ Fetch members when screen loads
     }
 
@@ -45,70 +51,85 @@ fun ListMembersScreen(
     val searchQuery by viewModel.searchQuery.collectAsState()
     var selectedImageUri by remember { mutableStateOf<String?>(null) }
 
-    Log.d("MemberDetails", "ListMember screen started")
-
-    Column(
-        modifier = modifier.fillMaxSize().padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        // Screen Title
-        Text(
-            text = "Member List",
-            style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold)
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // Search Field
-        OutlinedTextField(
-            value = searchQuery,
-            onValueChange = { viewModel.updateSearchQuery(it) },
-            label = { Text("Search by Short Name", fontSize = 10.sp) },
-            leadingIcon = { Icon(imageVector = Icons.Default.Person, contentDescription = null) },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // ✅ Handle different states
-        when (val state = memberState) {
-            is MemberState.Loading -> { CircularProgressIndicator(modifier = Modifier.padding(16.dp)) }
-            is MemberState.Error -> { Text(text = "Error: ${state.message}", color = Color.Red, modifier = Modifier.padding(16.dp)) }
-            is MemberState.Empty -> { Text(text = "No members found", color = Color.Gray, modifier = Modifier.padding(16.dp)) }
-            is MemberState.Success -> { Text(text = "Wrong member State for List its for single member", color = Color.Gray, modifier = Modifier.padding(16.dp))}
-            is MemberState.SuccessList -> {
-                val filteredMembers = if (searchQuery.isBlank()) {
-                    state.members // ✅ Show all members when search is empty
-                } else {
-                    state.members.filter { it.shortName.contains(searchQuery, ignoreCase = true) }
+    Scaffold(
+        topBar = { TopAppBar(
+            modifier = Modifier.heightIn(max = 56.dp),
+            title = { Text("Member List") },
+            navigationIcon = {
+                IconButton(onClick = { navController.popBackStack() }) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                 }
-
-                if (filteredMembers.isEmpty()) {
-                    Text(text = "No matching members found", color = Color.Gray, modifier = Modifier.padding(16.dp))
-                } else {
-                    LazyColumn {
-                        items(filteredMembers) { member ->
-                            MemberListItem(
-                                member = member,
-                                onItemClick = {
-                                    navController.navigate(MemberDetail(id = member.id))
-                                    viewModel.updateSearchQuery("") },
-                                onImageClick = { selectedImageUri = it }
+            },
+            actions = {
+                IconButton(onClick = { /*navController.navigate("home")*/ }) {
+                    Icon(Icons.Default.Home, contentDescription = "Home")
+                }
+            }
+        )},
+        floatingActionButton = {
+            FloatingActionButton(onClick = { navController.navigate(MemberDetail(id = "")) }) {
+                Icon(Icons.Default.Add, contentDescription = "Add")
+            } },
+        bottomBar = { /* Slot for a BottomBar */ },
+        //floatingActionButton = { /* Slot for a FAB (Floating Action Button) */ },
+        floatingActionButtonPosition = FabPosition.EndOverlay, // Default is End
+        //drawerContent = { /* Slot for a Navigation Drawer */ },
+        snackbarHost = { /* Slot for displaying SnackbarHost */ }
+    )
+    {
+        Column(modifier = modifier.fillMaxSize().padding(it).padding(0.dp), horizontalAlignment = Alignment.CenterHorizontally)
+        {
+            // Screen Title
+            //Text(text = "Member List", style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold))
+            //Spacer(modifier = Modifier.height(12.dp))
+            // Search Field
+            Text(text = "e.g. YJVT for yogesh jayendra vyas town : thavad", fontSize = 10.sp)
+            OutlinedTextField(value = searchQuery, onValueChange = { viewModel.updateSearchQuery(it) }, label = { Text("Search by Short Name", fontSize = 10.sp) }, leadingIcon = { Icon(imageVector = Icons.Default.Person, contentDescription = null) }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            Spacer(modifier = Modifier.height(12.dp))
+            // ✅ Handle different states
+            when (val state = memberState) {
+                is MemberState.Loading -> { CircularProgressIndicator(modifier = Modifier.padding(16.dp)) }
+                is MemberState.Error -> { Text(text = "Error: ${state.message}", color = Color.Red, modifier = Modifier.padding(16.dp)) }
+                is MemberState.Empty -> { Text(text = "No members found", color = Color.Gray, modifier = Modifier.padding(16.dp)) }
+                is MemberState.Success -> { Text(text = "Wrong member State for List its for single member", color = Color.Gray, modifier = Modifier.padding(16.dp)) }
+                is MemberState.SuccessList -> {
+                    val filteredMembers = if (searchQuery.isBlank()) {
+                        state.members // ✅ Show all members when search is empty
+                    } else {
+                        state.members.filter {
+                            it.shortName.contains(
+                                searchQuery,
+                                ignoreCase = true
                             )
-                            HorizontalDivider()
+                        } }
+
+                    if (filteredMembers.isEmpty()) { Text(text = "No matching members found", color = Color.Gray, modifier = Modifier.padding(16.dp))
+                    } else {
+                        LazyColumn {
+                            items(filteredMembers) { member ->
+                                MemberListItem(
+                                    member = member,
+                                    onItemClick = {
+                                        //navController.navigate(MemberDetail(id = ""))
+                                        navController.navigate(MemberDetail(id = member.id))
+                                        viewModel.updateSearchQuery("")
+                                    },
+                                    onImageClick = { selectedImageUri = it }
+                                )
+                                HorizontalDivider()
+                            }
                         }
                     }
                 }
             }
-        }
-    }
+        } // main column in screen
 
-    // ✅ Full-screen overlay for image preview
-    selectedImageUri?.let { uri ->
-        FullScreenImageOverlay(imageUri = uri, onDismiss = { selectedImageUri = null })
-    }
-}
+        // ✅ Full-screen overlay for image preview
+        selectedImageUri?.let{ uri ->
+            FullScreenImageOverlay(imageUri = uri, onDismiss = { selectedImageUri = null })
+        } // overlay in main screen
+    } // scaffold
+} // listmember
 
 // ✅ Member list item UI
 @Composable

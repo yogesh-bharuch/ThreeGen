@@ -33,7 +33,7 @@ fun SelectMemberSpouseScreen(
     navController: NavHostController,
     viewModel: ThreeGenViewModel,
     modifier: Modifier = Modifier,
-    onSpouseSelected: (ThreeGen) -> Unit
+    //onSpouseSelected: (ThreeGen) -> Unit
 ) {
     //Log.d("selectMember", "SelectMember screen started")
     LaunchedEffect(Unit) {
@@ -90,10 +90,11 @@ fun SelectMemberSpouseScreen(
                             SelectMemberSpouseListItem(
                                 member = member,
                                 onItemClick = {
-                                    onSpouseSelected(member)
+                                    //onSpouseSelected(member)
                                     // Save the selected spouse object to the savedStateHandle
-                                    navController.previousBackStackEntry?.savedStateHandle?.set("selectedSpouse", member)
+                                    //navController.previousBackStackEntry?.savedStateHandle?.set("selectedSpouse", member)
                                     viewModel.updateSearchQuery("")
+                                    viewModel.setEditableSpouse(member) // Update the ViewModel with the selected spouse
                                     navController.popBackStack()
                                 },
                                 onImageClick = { selectedImageUri = it }

@@ -99,10 +99,6 @@ fun AppNavigation(
             SelectMemberParentScreen(
                 navController = navController,
                 viewModel = viewModel,
-                onParentSelected = { selectedParent: ThreeGen -> // Expecting ThreeGen object
-                    // Save the entire selectedParent object
-                    navController.previousBackStackEntry?.savedStateHandle?.set("selectedParent", selectedParent)
-                },
                 modifier = modifier
             )
         }
@@ -111,10 +107,6 @@ fun AppNavigation(
             SelectMemberSpouseScreen(
                 navController = navController,
                 viewModel = viewModel,
-                onSpouseSelected = { selectedSpouse: ThreeGen ->
-                    // Save the entire selectedSpouse object
-                    navController.previousBackStackEntry?.savedStateHandle?.set("selectedSpouse", selectedSpouse)
-                },
                 modifier = modifier
             )
         }

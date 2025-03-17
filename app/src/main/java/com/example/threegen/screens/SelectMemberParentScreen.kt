@@ -32,7 +32,7 @@ fun SelectMemberParentScreen(
     navController: NavHostController,
     viewModel: ThreeGenViewModel,
     modifier: Modifier = Modifier,
-    onParentSelected: (ThreeGen) -> Unit
+    //onParentSelected: (ThreeGen) -> Unit
 ) {
     //Log.d("selectMember", "SelectMember screen started")
     LaunchedEffect(Unit) {
@@ -76,10 +76,11 @@ fun SelectMemberParentScreen(
                             SelectMemberParentListItem(
                                 member = member,
                                 onItemClick = {
-                                    onParentSelected(member)
+                                    //onParentSelected(member)
                                     // Save the selected parent object to the savedStateHandle
-                                    navController.previousBackStackEntry?.savedStateHandle?.set("selectedParent", member)
+                                    //navController.previousBackStackEntry?.savedStateHandle?.set("selectedParent", member)
                                     viewModel.updateSearchQuery("")
+                                    viewModel.setEditableParent(member) // Update the ViewModel with the selected parent
                                     navController.popBackStack()
                                 },
                                 onImageClick = { selectedImageUri = it }
