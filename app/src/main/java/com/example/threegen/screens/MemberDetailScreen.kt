@@ -102,10 +102,11 @@ fun MemberDetailScreen(
                             Button(
                                 onClick = {
                                     //Log.d("Yogesh", "Member Details before save click : ${editableMember.value}")
-                                    Log.d("MemberDetailScreen", "Member's parent cleared $editableMember.value")
-                                    viewModel.updateMember(memberId = member.id, firstName = editableMember.value.firstName, middleName = editableMember.value.middleName ?: "", lastName = editableMember.value.lastName, town = editableMember.value.town, parentID = editableMember.value.parentID, spouseID = editableMember.value.spouseID, imageUri = editableMember.value.imageUri, childNumber = editableMember.value.childNumber, comment = editableMember.value.comment)
-                                    viewModel.clearEditableSpouse() // Clear parent details if parent changed od add
-                                    viewModel.clearEditableParent() // Clear parent details if spouse changed od add
+                                    //Log.d("yogesh", "Parent before save btn press : ${editableMember.value.parentID} Old Parent first name : ${memberParent?.firstName}")
+                                   if (memberId == "") {viewModel.addThreeGen(firstName = editableMember.value.firstName, middleName = editableMember.value.middleName ?: "", lastName = editableMember.value.lastName, town = editableMember.value.town, imageUri = editableMember.value.imageUri, parentID = editableMember.value.parentID, spouseID = editableMember.value.spouseID, childNumber = editableMember.value.childNumber, comment = editableMember.value.comment)}
+                                   else {viewModel.updateMember(memberId = member.id, firstName = editableMember.value.firstName, middleName = editableMember.value.middleName ?: "", lastName = editableMember.value.lastName, town = editableMember.value.town, parentID = editableMember.value.parentID, spouseID = editableMember.value.spouseID, imageUri = editableMember.value.imageUri, childNumber = editableMember.value.childNumber, comment = editableMember.value.comment)}
+
+
                                     Toast.makeText(context, "Member details saved!", Toast.LENGTH_SHORT).show()
                                 },
                                 modifier = Modifier.weight(1f)
@@ -253,61 +254,99 @@ fun EditableMemberDetails(firstName: String, onFirstNameChange: (String) -> Unit
 // ✅ Parent Section
 @Composable
 fun ParentDetail(editableMember: MutableState<ThreeGen>, editableParent: MutableState<ThreeGen?>, navController: NavHostController, viewModel: ThreeGenViewModel, onImageClick: (String) -> Unit) {
-    // Observing states from ViewModel
-    val currentEditableParent by viewModel.editableParent.observeAsState()
-    // If a new parent is selected, update editableParent
-    currentEditableParent?.let {
-        if (it != editableParent.value) {
-            editableParent.value = it
-            editableMember.value = editableMember.value.copy(parentID = it.id)
-            //viewModel.clearEditableParent() // Clear after assigning
-        }
+    val selectedParent = navController.currentBackStackEntry?.savedStateHandle?.getLiveData<ThreeGen>("selectedParent")?.observeAsState()
+    selectedParent?.value?.let {
+        Log.d("yogesh", "selectedParent.value: ${selectedParent.value}")
+        editableMember.value = editableMember.value.copy(parentID = it.id)
+        Log.d("yogesh", "Old Parent.value: ${editableMember.value.parentID}")
+        editableParent.value = it // Update editableParent with the selected parent
+        Log.d("yogesh", "New selectedParent.value: ${selectedParent.value!!.firstName}")
+        navController.currentBackStackEntry?.savedStateHandle?.remove<ThreeGen>("selectedParent")
     }
 
-    // Main UI Column
+    val newParentState by viewModel.memberState.collectAsState()
+    //Log.d("yogesh", "newParentState : $newParentState")
+
     Column(modifier = Modifier.fillMaxWidth().padding(8.dp)) {
-        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
             Text(text = "Parent Detail", style = MaterialTheme.typography.titleMedium)
-            // Add/Change Parent Button
-            Button(onClick = {
-                    // Navigate to SelectParentScreen to allow reassignment
-                    //viewModel.clearEditableParent() // Clear the current parent if the user wants to change it
-                    navController.navigate(SelectMemberParent)
-                }, modifier = Modifier.padding(start = 8.dp)) { Text(text = "Add/Change Parent") }
+            Log.d("yogesh", "before onclick parent add")
+            Button(
+                onClick = {
+                    Log.d("yogesh", "before try in member detail file at on click of add/change parent")
+                    try {
+                        Log.d("yogesh", "editableMember.value: ${editableMember.value}")
+                        navController.currentBackStackEntry?.let { backStackEntry ->
+                            Log.d("yogesh", "backStackEntry is not null")
+                            // Save the entire editableParent object
+                            backStackEntry.savedStateHandle["selectedParent"] = editableParent.value
+                            Log.d("yogesh", "after backstack entry saved - Value: ${editableParent.value}")
+
+                            // Verify the value is set
+                            val savedValue = backStackEntry.savedStateHandle.get<ThreeGen>("selectedParent")
+                            Log.d("yogesh", "Saved value in backStackEntry: $savedValue")
+                        } ?: run {
+                            Log.e("yogesh", "backStackEntry inside ?. run")
+                        }
+                        Log.d("yogesh", "before navigation in member detail")
+                        navController.navigate(SelectMemberParent)
+                        Log.d("yogesh", "after navigation in member detail")
+                    } catch (e: Exception) {
+                        Log.e("selectMember", "Error saving state or navigating: ${e.message}")
+                    }
+                },
+                modifier = Modifier.padding(start = 8.dp)
+            ) {
+                Text(text = "Add/Change Parent")
+            }
         }
-        // Display parent details if parentID is not null
-        if (editableMember.value.parentID != null && editableParent.value != null) {
-            Row(modifier = Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                // Parent Image
-                Box(modifier = Modifier.size(48.dp).clip(CircleShape).background(Color.Gray)) {
+        // Check if parentID is not null before rendering
+        if (editableMember.value.parentID != null) {
+            // Log to show memberID and parentID
+            // Log.d("vyas", "memberid is : ${editableMember.value.id} and parent id : ${editableMember.value.parentID}")
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier.size(48.dp).clip(CircleShape).background(Color.Gray)
+                ) {
+                    // Display parent image if available
                     editableParent.value?.imageUri?.let { imageUri ->
                         Image(
                             painter = rememberAsyncImagePainter(model = imageUri),
                             contentDescription = "Parent Image",
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .clickable { onImageClick(imageUri) },
+                            modifier = Modifier.fillMaxSize().clickable { onImageClick(imageUri) },
                             contentScale = ContentScale.Crop
                         )
                     }
                 }
-                Spacer(modifier = Modifier.width(8.dp))
-                // Parent Details
-                Column (modifier=Modifier.weight(1f)){
-                    editableParent.value?.let { parent ->
-                        Text(text = "${parent.firstName} ${parent.middleName} ${parent.lastName}", style = MaterialTheme.typography.bodyMedium)
-                        Text(text = parent.town, style = MaterialTheme.typography.bodySmall)
-                    }
+                    Column {
+                        // Display parent's full name if available
+                        editableParent.value?.let { parent ->
+                            Text(
+                                text = "${parent.firstName} ${parent.middleName} ${parent.lastName}",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            Text(
+                                text = parent.town,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
                 }
-                Spacer(modifier = Modifier.width(8.dp))
-                // Delete Parent Icon
-                IconButton(onClick = {
-                        // Clear the parent details in the ViewModel and locally
-                        editableMember.value = editableMember.value.copy(parentID = null)
-                        editableParent.value = null
-                        //viewModel.clearEditableSpouse() // Clear parent details
-                        //viewModel.clearEditableParent() // Clear parent details
-                    }) { Icon(imageVector = Icons.Default.Delete, contentDescription = "Delete Parent") }
+                    IconButton(
+                        onClick = {
+                            editableMember.value = editableMember.value.copy(parentID = null)
+                            editableParent.value = null // Clear editableParent
+                    }
+                    ) {
+                    Icon(imageVector = Icons.Default.Delete, contentDescription = "Delete Parent")
+                }
             }
         }
     }
@@ -316,35 +355,59 @@ fun ParentDetail(editableMember: MutableState<ThreeGen>, editableParent: Mutable
 // ✅ Spouse Section
 @Composable
 fun SpouseDetail(editableMember: MutableState<ThreeGen>, editableSpouse: MutableState<ThreeGen?>, navController: NavHostController, viewModel: ThreeGenViewModel, onImageClick: (String) -> Unit) {
-    // Observing states from ViewModel
-    val currentEditableSpouse by viewModel.editableSpouse.observeAsState()
-    // If a new parent is selected, update editableParent
-    currentEditableSpouse?.let {
-        if (it != editableSpouse.value) {
-            editableSpouse.value = it
-            editableMember.value = editableMember.value.copy(spouseID = it.id)
-            //viewModel.clearEditableSpouse() // Clear after assigning shifted to save button
-        }
+    val selectedSpouse = navController.currentBackStackEntry?.savedStateHandle?.getLiveData<ThreeGen>("selectedSpouse")?.observeAsState()
+    selectedSpouse?.value?.let {
+        editableMember.value = editableMember.value.copy(spouseID = it.id)
+        editableSpouse.value = it // Update editableParent with the selected parent
+        navController.currentBackStackEntry?.savedStateHandle?.remove<ThreeGen>("selectedSpouse")
     }
 
-    // Main UI Column
+    val newSpouseState by viewModel.memberState.collectAsState()
+
+
     Column(modifier = Modifier.fillMaxWidth().padding(8.dp)) {
-        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
             Text(text = "Spouse Detail", style = MaterialTheme.typography.titleMedium)
-            // Add/Change Spouse Button
-            Button(onClick = {
-                    // Navigate to SelectParentScreen to allow reassignment
-                    //viewModel.clearEditableSpouse() // Clear the current parent if the user wants to change it
-                    navController.navigate(SelectMemberSpouse)
-                }, modifier = Modifier.padding(start = 8.dp)) { Text(text = "Add/Change Spouse") }
+            Button(
+                onClick = {
+                    //Log.d("yogesh", "before try in member detail file at on click of add/change parent")
+                    try {
+                        //Log.d("yogesh", "editableMember.value: ${editableMember.value}")
+                        navController.currentBackStackEntry?.let { backStackEntry ->
+                            //Log.d("yogesh", "backStackEntry is not null")
+                            // Save the entire editableParent object
+                            backStackEntry.savedStateHandle["selectedSpouse"] = editableSpouse.value
+                            //Log.d("yogesh", "after backstack entry saved - Value: ${editableParent.value}")
+                            val savedValue = backStackEntry.savedStateHandle.get<ThreeGen>("selectedSpouse")
+                            //Log.d("yogesh", "Saved value in backStackEntry: $savedValue")
+                        } ?: run {
+                            //Log.e("yogesh", "backStackEntry inside ?. run")
+                        }
+                        //Log.d("yogesh", "before navigation in member detail")
+                        navController.navigate(SelectMemberSpouse)
+                        //Log.d("yogesh", "after navigation in member detail")
+                    } catch (e: Exception) {
+                        //Log.e("selectMember", "Error saving state or navigating: ${e.message}")
+                    }
+                },
+                modifier = Modifier.padding(start = 8.dp)
+            ) {
+                Text(text = "Add/Change Spouse")
+            }
         }
-        // Display spouse details if spouseID is not null
-        //(editableMember.value.spouseID != null && editableSpouse.value != null)
-        if (editableMember.value.spouseID != null && editableSpouse.value != null) {
-            Row(modifier = Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically)
+        // Check if spouseID is not null before rendering
+        if (editableMember.value.spouseID != null) {
+            Row(modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalAlignment = Alignment.CenterVertically)
             {
-                // Spouse Image
-                Box(modifier = Modifier.size(48.dp).clip(CircleShape).background(Color.Gray)) {
+                Box(
+                    modifier = Modifier.size(48.dp).clip(CircleShape).background(Color.Gray)
+                ) {
                     // Display parent image if available
                     editableSpouse.value?.imageUri?.let { imageUri ->
                         Image(
@@ -355,23 +418,27 @@ fun SpouseDetail(editableMember: MutableState<ThreeGen>, editableSpouse: Mutable
                         )
                     }
                 }
-                Spacer(modifier = Modifier.width(8.dp))
-                // Spouse Details
-                Column(modifier=Modifier.weight(1f)) {
+                Column {
                     // Display parent's full name if available
                     editableSpouse.value?.let { spouse ->
-                        Text(text = "${spouse.firstName} ${spouse.middleName} ${spouse.lastName}", style = MaterialTheme.typography.bodyMedium)
-                        Text(text = spouse.town, style = MaterialTheme.typography.bodySmall)
+                        Text(
+                            text = "${spouse.firstName} ${spouse.middleName} ${spouse.lastName}",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Text(
+                            text = spouse.town,
+                            style = MaterialTheme.typography.bodySmall
+                        )
                     }
                 }
-                Spacer(modifier = Modifier.width(8.dp))
-                // Delete Spouse Icon
-                IconButton(onClick = {
-                        // Clear the Spouse details in the ViewModel and locally
+                IconButton(
+                    onClick = {
                         editableMember.value = editableMember.value.copy(spouseID = null)
-                        editableSpouse.value = null // Clear editableSpouse
-                        //viewModel.clearEditableSpouse() // Clear parent details
-                    }) { Icon(imageVector = Icons.Default.Delete, contentDescription = "Delete Parent") }
+                        editableSpouse.value = null // Clear editableParent
+                    }
+                ) {
+                    Icon(imageVector = Icons.Default.Delete, contentDescription = "Delete Parent")
+                }
             }
         }
     }
@@ -421,5 +488,3 @@ fun DeleteButton(member: ThreeGen, viewModel: ThreeGenViewModel, navController: 
         )
     }
 } // called from action buttons
-
-
