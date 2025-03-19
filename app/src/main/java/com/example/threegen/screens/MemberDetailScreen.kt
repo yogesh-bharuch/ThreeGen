@@ -47,7 +47,8 @@ fun MemberDetailScreen(
     viewModel: ThreeGenViewModel,
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier
-) {
+)
+{
     val memberState by viewModel.memberState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     var zoomedImageUri by remember { mutableStateOf<String?>(null) }
@@ -57,7 +58,8 @@ fun MemberDetailScreen(
         viewModel.fetchMemberDetails(memberId)
     }
 
-    when (val state = memberState) {
+    when (val state = memberState)
+    {
         is MemberState.Loading -> LoadingState()
         is MemberState.Empty -> EmptyState() //SuccessList
         is MemberState.Error -> ErrorState(state.message)
@@ -103,34 +105,14 @@ fun MemberDetailScreen(
                             Button(
                                 onClick = {
                                     if (memberId == ""){
-                                        viewModel.addThreeGen(
-                                            firstName = editableMember.value.firstName,
-                                            middleName = editableMember.value.middleName ?: "",
-                                            lastName = editableMember.value.lastName,
-                                            town = editableMember.value.town,
-                                            parentID = editableMember.value.parentID,
-                                            spouseID = editableMember.value.spouseID,
-                                            imageUri = editableMember.value.imageUri,
-                                            childNumber = editableMember.value.childNumber,
-                                            comment = editableMember.value.comment
-                                        ) { insertedRows ->
+                                        viewModel.addThreeGen(firstName = editableMember.value.firstName, middleName = editableMember.value.middleName ?: "", lastName = editableMember.value.lastName, town = editableMember.value.town, parentID = editableMember.value.parentID, spouseID = editableMember.value.spouseID, imageUri = editableMember.value.imageUri, childNumber = editableMember.value.childNumber, comment = editableMember.value.comment) { insertedRows ->
                                             if (insertedRows > 0)
                                             { Toast.makeText(context, "Successfully insertedRows $insertedRows row(s)!", Toast.LENGTH_SHORT).show() }
                                             else { Toast.makeText(context, "Insert failed. No rows were inserted.", Toast.LENGTH_SHORT).show() }
+                                            navController.popBackStack()
                                         }
                                     } else {
-                                        viewModel.updateMember(
-                                            memberId = member.id,
-                                            firstName = editableMember.value.firstName,
-                                            middleName = editableMember.value.middleName ?: "",
-                                            lastName = editableMember.value.lastName,
-                                            town = editableMember.value.town,
-                                            parentID = editableMember.value.parentID,
-                                            spouseID = editableMember.value.spouseID,
-                                            imageUri = editableMember.value.imageUri,
-                                            childNumber = editableMember.value.childNumber,
-                                            comment = editableMember.value.comment
-                                        ){ updatedRows ->
+                                        viewModel.updateMember(memberId = member.id, firstName = editableMember.value.firstName, middleName = editableMember.value.middleName ?: "", lastName = editableMember.value.lastName, town = editableMember.value.town, parentID = editableMember.value.parentID, spouseID = editableMember.value.spouseID, imageUri = editableMember.value.imageUri, childNumber = editableMember.value.childNumber, comment = editableMember.value.comment){ updatedRows ->
                                             if (updatedRows > 0)
                                                 { Toast.makeText(context, "Successfully updated $updatedRows row(s)!", Toast.LENGTH_SHORT).show() }
                                             else { Toast.makeText(context, "Update failed. No rows were updated.", Toast.LENGTH_SHORT).show() }
@@ -138,7 +120,6 @@ fun MemberDetailScreen(
                                     }
                                     viewModel.clearEditableSpouse() // Clear parent details if parent changed od add
                                     viewModel.clearEditableParent() // Clear parent details if spouse changed od add
-                                    //Toast.makeText(context, "Member details saved!", Toast.LENGTH_SHORT).show()
                                 },
                                 modifier = Modifier.weight(1f)
                             ) { Text(text = "Save") }
@@ -172,8 +153,8 @@ fun MemberDetailScreen(
                 zoomedImageUri?.let { ImageOverlay(it) { zoomedImageUri = null } }
             }
         }
-    }
-}
+    } // when block in member detail screen
+} // MemberDetailScreen
 
 // ✅ Loading State
 @Composable
