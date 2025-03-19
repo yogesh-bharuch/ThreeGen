@@ -193,7 +193,7 @@ fun AddMemberScreen(
 
         // Save Button
         Button(
-            onClick = {
+            onClick = {/*
                 if (firstName.isBlank() || middleName.isBlank() || lastName.isBlank() || townName.isBlank()) {
                     showError = true
                 } else {
@@ -212,7 +212,7 @@ fun AddMemberScreen(
                     Toast.makeText(context, "Member added successfully!", Toast.LENGTH_SHORT).show()
                     navController.popBackStack()
                 }
-            },
+            */},
             modifier = Modifier.fillMaxWidth()
         ) {
             Text(text = "Save Member")

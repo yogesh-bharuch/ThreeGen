@@ -16,27 +16,16 @@ class ThreeGenRepository(private val threeGenDao: ThreeGenDao) {
     /**
      * Inserts a new member or updates an existing one.
      */
-    suspend fun addThreeGen(member: ThreeGen) {
-        Log.d("ThreeGenViewModel", "Adding member to repo: $member")
-        threeGenDao.insert(member)
+    suspend fun addThreeGen(member: ThreeGen): Int {
+        return threeGenDao.insert(member).toInt()
     }
 
     /**
      * Updates an existing member in the local database.
      */
-    suspend fun updateThreeGen(member: ThreeGen) {
-        /*val oldValue = threeGenDao.getMemberByIdSync(member.id) // Fetch the old value
-        if (oldValue != null) {
-            Log.d("yogesh", "Updating member in repo before update firstname is : ${oldValue.firstName}")
-        }*/
-        Log.d("yogesh", "Updating member in repo before update firstname is : $member")
+    suspend fun updateThreeGen(member: ThreeGen): Int {
         val returnedRows = threeGenDao.updateThreeGen(member) // Update the member in the database
-        Log.d("yogesh", "Returned updated rows from dao: $returnedRows")
-
-        /*        val freshMember = getMemberByIdSync(member.id) // Fetch the updated member from the database
-        if (freshMember != null) {
-            Log.d("yogesh", "Updated member in repo after update firstname is : ${freshMember.firstName}")
-        }*/
+        return returnedRows
     }
 
     /**

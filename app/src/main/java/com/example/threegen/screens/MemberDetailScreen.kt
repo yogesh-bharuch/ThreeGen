@@ -18,6 +18,7 @@ import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -67,9 +68,9 @@ fun MemberDetailScreen(
             val memberSpouse = state.spouse
 
             // ✅ Store editable fields together to optimize recomposition
-            val editableMember = remember { mutableStateOf(member) }
-            val editableParent = remember { mutableStateOf(memberParent) }
-            val editableSpouse = remember { mutableStateOf(memberSpouse) } // Added for spouse detail
+            val editableMember = rememberSaveable { mutableStateOf(member) }
+            val editableParent = rememberSaveable { mutableStateOf(memberParent) }
+            val editableSpouse = rememberSaveable { mutableStateOf(memberSpouse) } // Added for spouse detail
 
             Box(modifier = Modifier.fillMaxSize().padding(8.dp))
             {
@@ -101,12 +102,43 @@ fun MemberDetailScreen(
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
                             Button(
                                 onClick = {
-                                    //Log.d("Yogesh", "Member Details before save click : ${editableMember.value}")
-                                    Log.d("MemberDetailScreen", "Member's parent cleared $editableMember.value")
-                                    viewModel.updateMember(memberId = member.id, firstName = editableMember.value.firstName, middleName = editableMember.value.middleName ?: "", lastName = editableMember.value.lastName, town = editableMember.value.town, parentID = editableMember.value.parentID, spouseID = editableMember.value.spouseID, imageUri = editableMember.value.imageUri, childNumber = editableMember.value.childNumber, comment = editableMember.value.comment)
+                                    if (memberId == ""){
+                                        viewModel.addThreeGen(
+                                            firstName = editableMember.value.firstName,
+                                            middleName = editableMember.value.middleName ?: "",
+                                            lastName = editableMember.value.lastName,
+                                            town = editableMember.value.town,
+                                            parentID = editableMember.value.parentID,
+                                            spouseID = editableMember.value.spouseID,
+                                            imageUri = editableMember.value.imageUri,
+                                            childNumber = editableMember.value.childNumber,
+                                            comment = editableMember.value.comment
+                                        ) { insertedRows ->
+                                            if (insertedRows > 0)
+                                            { Toast.makeText(context, "Successfully insertedRows $insertedRows row(s)!", Toast.LENGTH_SHORT).show() }
+                                            else { Toast.makeText(context, "Insert failed. No rows were inserted.", Toast.LENGTH_SHORT).show() }
+                                        }
+                                    } else {
+                                        viewModel.updateMember(
+                                            memberId = member.id,
+                                            firstName = editableMember.value.firstName,
+                                            middleName = editableMember.value.middleName ?: "",
+                                            lastName = editableMember.value.lastName,
+                                            town = editableMember.value.town,
+                                            parentID = editableMember.value.parentID,
+                                            spouseID = editableMember.value.spouseID,
+                                            imageUri = editableMember.value.imageUri,
+                                            childNumber = editableMember.value.childNumber,
+                                            comment = editableMember.value.comment
+                                        ){ updatedRows ->
+                                            if (updatedRows > 0)
+                                                { Toast.makeText(context, "Successfully updated $updatedRows row(s)!", Toast.LENGTH_SHORT).show() }
+                                            else { Toast.makeText(context, "Update failed. No rows were updated.", Toast.LENGTH_SHORT).show() }
+                                        }
+                                    }
                                     viewModel.clearEditableSpouse() // Clear parent details if parent changed od add
                                     viewModel.clearEditableParent() // Clear parent details if spouse changed od add
-                                    Toast.makeText(context, "Member details saved!", Toast.LENGTH_SHORT).show()
+                                    //Toast.makeText(context, "Member details saved!", Toast.LENGTH_SHORT).show()
                                 },
                                 modifier = Modifier.weight(1f)
                             ) { Text(text = "Save") }

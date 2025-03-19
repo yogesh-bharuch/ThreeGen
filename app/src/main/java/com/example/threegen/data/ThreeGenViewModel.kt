@@ -221,10 +221,12 @@ class ThreeGenViewModel(
         parentID: String?,
         spouseID: String?,
         childNumber: Int? = 1,
-        comment: String? = null
+        comment: String? = null,
+        onResult: (Int) -> Unit
     ) {
         if (firstName.isBlank() || middleName.isBlank() || lastName.isBlank() || town.isBlank()) {
             Log.e("ThreeGenViewModel", "Validation failed: All name fields and town are required")
+            onResult(0) // Signal failure
             return
         }
 
@@ -236,35 +238,46 @@ class ThreeGenViewModel(
             val uniqueShortName = generateUniqueShortName(formattedFirstName, formattedMiddleName, formattedLastName, formattedTown)
             // ✅ Get the current user ID for the createdBy field
             val currentUserId = auth.currentUser?.uid
-            //val currentUserId1 = firebase.auth().currentUser.uid;
 
             // ✅ Create a new ThreeGen object to insert in local database with formated values and createdby field with current user
             val newMember = ThreeGen(firstName = formattedFirstName, middleName = formattedMiddleName, lastName = formattedLastName, town = formattedTown, shortName = uniqueShortName, imageUri = imageUri, parentID = parentID, spouseID = spouseID, createdAt = System.currentTimeMillis(), syncStatus = SyncStatus.NOT_SYNCED, childNumber = childNumber, comment = comment, createdBy = currentUserId)
-            // created field with currentfirebaseuser
-            //val currentUserId = auth.currentUser?.uid
+            val insertedRows = repository.addThreeGen(newMember)
 
-            repository.addThreeGen(newMember)
-            fetchMembers() // ✅ Refresh list after adding a member
+            withContext(Dispatchers.Main) {
+                onResult(insertedRows) // Notify the number of rows inserted
+            }
         }
     }
 
     // new update function
-    fun updateMember(memberId: String, firstName: String, middleName: String, lastName: String, town: String, parentID: String?, spouseID: String?, imageUri: String?, childNumber: Int?, comment: String?) {
+    fun updateMember(memberId: String, firstName: String, middleName: String, lastName: String, town: String, parentID: String?, spouseID: String?, imageUri: String?, childNumber: Int?, comment: String?, onResult: (Int) -> Unit) {
         if (firstName.isBlank() || middleName.isBlank() || lastName.isBlank() || town.isBlank()) {
             Log.e("ThreeGenViewModel", "Validation failed: All name fields and town are required")
+            onResult(0)
             return
         }
+        Log.d("update member", "updating member from viewmodel before Repo: $memberId")
 
         viewModelScope.launch(Dispatchers.IO) {
-            val member = repository.getMemberByIdSync(memberId) ?: return@launch
+            val member = repository.getMemberByIdSync(memberId) /// ?: return@launch
+            if (member == null) {
+                onResult(0) // Return 0 if no member is found
+                return@launch
+            }
             val formattedFirstName = formatName(firstName)
             val formattedMiddleName = formatName(middleName)
             val formattedLastName = formatName(lastName)
             val formattedTown = formatName(town)
             val uniqueShortName = generateUniqueShortName(formattedFirstName, formattedMiddleName, formattedLastName, formattedTown)
             val updatedMember = member.copy(firstName = formattedFirstName, middleName = formattedMiddleName, lastName = formattedLastName, town = formattedTown, parentID = parentID, spouseID = spouseID, shortName = uniqueShortName, imageUri = imageUri, childNumber = childNumber, comment = comment, syncStatus = SyncStatus.UPDATED)
-            Log.d("yogesh", "Updating member with ID from viewmodel before repo call : $memberId to $updatedMember")
-            repository.updateThreeGen(updatedMember)
+            val updatedRows = repository.updateThreeGen(updatedMember)
+            //onResult(updatedRows) // Return the number of updated rows
+            // ✅ Switch back to the main thread to show the Toast
+            withContext(Dispatchers.Main) {
+                onResult(updatedRows)
+            }
+            //Log.d("update member", "updating member from viewmodel after Repo: $updatedRows")
+/*
 
             withContext(Dispatchers.Main) {
                 _memberState.value = MemberState.Loading // 🔥 Force UI to refresh
@@ -281,6 +294,7 @@ class ThreeGenViewModel(
 
                 Log.d("ViewModel", "State updated to : ${_memberState.value}")
             }
+*/
 
             //fetchMembers() // ✅ Refresh list after updating
         }
