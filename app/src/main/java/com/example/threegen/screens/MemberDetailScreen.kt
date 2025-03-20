@@ -74,7 +74,7 @@ fun MemberDetailScreen(memberId: String, navController: NavHostController, viewM
 
                     //Box(modifier = Modifier.fillMaxSize().padding(8.dp)) {
                         LazyColumn(
-                            modifier = Modifier.fillMaxSize().padding(WindowInsets.navigationBars.asPaddingValues()).padding(WindowInsets.statusBars.asPaddingValues()).padding(PaddingValues(top = 1.dp, bottom = 1.dp))
+                            modifier = Modifier.fillMaxSize().padding(PaddingValues(top = 1.dp, bottom = 1.dp))
                         ) {
                             //item { PageHeader() }
                             item {

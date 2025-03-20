@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.Alignment
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.platform.LocalDensity
 import androidx.navigation.NavHostController
 import com.example.threegen.ListScreen
 import com.example.threegen.ui.theme.ThreeGenTheme
@@ -24,49 +25,63 @@ import com.example.threegen.ui.theme.ThreeGenTheme
 @Composable
 fun CustomTopBar(title: String, navController: NavHostController, onHomeClick: () -> Unit) {
     ThreeGenTheme {
-        Row(
+        // Calculate window insets for status bar and navigation bar padding
+        val statusBarPadding = with(LocalDensity.current) {
+            WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+        }
+
+        val navBarPadding = with(LocalDensity.current) {
+            WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+        }
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .height(36.dp)
-                .background(
-                    color = MaterialTheme.colorScheme.background,
-                    shape = RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp)
-                )
-                .padding(horizontal = 16.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .background(color = MaterialTheme.colorScheme.background) // Use theme background color
+                //.padding(top = statusBarPadding, bottom = navBarPadding) // Add system bar padding
         ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(36.dp)
+                    .background(
+                        color = MaterialTheme.colorScheme.background,
+                        shape = RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp)
+                    )
+                    .padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
 
-            // Back button ALWAYS navigates to ListScreen
-            IconButton(onClick = {
-                navController.navigate(ListScreen) {
-                    popUpTo(ListScreen) {
-                        inclusive = true
-                    }  // Clear the back stack to avoid duplicates
+                // Back button ALWAYS navigates to ListScreen
+                IconButton(onClick = {
+                    navController.navigate(ListScreen) {
+                        popUpTo(ListScreen) {
+                            inclusive = true
+                        }  // Clear the back stack to avoid duplicates
+                    }
+                }) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Back to List",
+                        tint = MaterialTheme.colorScheme.onBackground
+                    )
                 }
-            }) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Back to List",
-                    tint = MaterialTheme.colorScheme.onBackground
-                )
-            }
 
-            // Title
-            Text(
-                text = title,
-                color = MaterialTheme.colorScheme.onBackground,
-                fontSize = MaterialTheme.typography.titleMedium.fontSize,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.weight(1f)
-            )
-
-            // Home Icon
-            IconButton(onClick = onHomeClick) {
-                Icon(
-                    imageVector = Icons.Filled.Home,
-                    contentDescription = "Home",
-                    tint = MaterialTheme.colorScheme.onBackground
+                // Title
+                Text(
+                    text = title,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    fontSize = MaterialTheme.typography.titleMedium.fontSize,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.weight(1f)
                 )
+
+                // Home Icon
+                IconButton(onClick = onHomeClick) {
+                    Icon(
+                        imageVector = Icons.Filled.Home,
+                        contentDescription = "Home",
+                        tint = MaterialTheme.colorScheme.onBackground
+                    )
+                }
             }
         }
     }
