@@ -32,22 +32,18 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import coil.compose.rememberAsyncImagePainter
+import com.example.threegen.Home
 import com.example.threegen.MemberFamilyTree
 import com.example.threegen.data.ThreeGen
 import com.example.threegen.data.ThreeGenViewModel
 import com.example.threegen.SelectMemberParent
 import com.example.threegen.SelectMemberSpouse
+import com.example.threegen.util.CustomTopBar
 import com.example.threegen.util.MemberState
 import com.example.threegen.util.formatDateTime
 
 @Composable
-fun MemberDetailScreen(
-    memberId: String,
-    navController: NavHostController,
-    viewModel: ThreeGenViewModel,
-    onNavigateBack: () -> Unit,
-    modifier: Modifier = Modifier
-)
+fun MemberDetailScreen(memberId: String, navController: NavHostController, viewModel: ThreeGenViewModel, onNavigateBack: () -> Unit, modifier: Modifier = Modifier)
 {
     val memberState by viewModel.memberState.collectAsStateWithLifecycle()
     val context = LocalContext.current
@@ -57,103 +53,106 @@ fun MemberDetailScreen(
         //Log.d("MemberDetailScreen", "Calling fetchMemberDetails for ID from launched effect : $memberState")
         viewModel.fetchMemberDetails(memberId)
     }
-
-    when (val state = memberState)
-    {
-        is MemberState.Loading -> LoadingState()
-        is MemberState.Empty -> EmptyState() //SuccessList
-        is MemberState.Error -> ErrorState(state.message)
-        is MemberState.SuccessList -> SuccessList()
-        is MemberState.Success -> {
-            val member = state.member
-            val memberParent = state.parent
-            val memberSpouse = state.spouse
-
-            // ✅ Store editable fields together to optimize recomposition
-            val editableMember = rememberSaveable { mutableStateOf(member) }
-            val editableParent = rememberSaveable { mutableStateOf(memberParent) }
-            val editableSpouse = rememberSaveable { mutableStateOf(memberSpouse) } // Added for spouse detail
-
-            Box(modifier = Modifier.fillMaxSize().padding(8.dp))
+    Column(modifier = Modifier.fillMaxSize().padding(top = 32.dp)) {
+        CustomTopBar(title = "Member Details", navController = navController, onHomeClick = { navController.navigate(Home) })
+        Box(modifier = Modifier.fillMaxSize().padding(1.dp)) {
+            when (val state = memberState)
             {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize().padding(WindowInsets.navigationBars.asPaddingValues()).padding(WindowInsets.statusBars.asPaddingValues()).padding(PaddingValues(top = 24.dp, bottom = 24.dp))
-                ) {
-                    item { PageHeader() }
-                    item {
-                        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically)
-                        {
-                            AddImage(member, editableMember.value.imageUri ?: "", onImageClick = { zoomedImageUri = it }, onImageUriChange = { uri -> editableMember.value = editableMember.value.copy(imageUri = uri) })
-                            Spacer(modifier = Modifier.width(16.dp))
-                            EditableMemberDetails(
-                                firstName = editableMember.value.firstName, onFirstNameChange = { editableMember.value = editableMember.value.copy(firstName = it) },
-                                middleName = editableMember.value.middleName ?: "", onMiddleNameChange = { editableMember.value = editableMember.value.copy(middleName = it) },
-                                lastName = editableMember.value.lastName, onLastNameChange = { editableMember.value = editableMember.value.copy(lastName = it) },
-                                town = editableMember.value.town, onTownChange = { editableMember.value = editableMember.value.copy(town = it) },
-                                childNumber = editableMember.value.childNumber?.toString() ?: "", onChildNumberChange = { editableMember.value = editableMember.value.copy(childNumber = it.toIntOrNull()) },
-                                comment = editableMember.value.comment ?: "", onCommentChange = { editableMember.value = editableMember.value.copy(comment = it) }
-                            )
-                        }
-                    } // ✅ AddImage, Editable Member Details
-                    item {
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text(text = "Created At: ${formatDateTime(member.createdAt)}", fontSize = 8.sp)
-                            Text(text = "Short Name: ${member.shortName}", fontSize = 8.sp, fontWeight = FontWeight.Bold)
-                        }
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                            Button(
-                                onClick = {
-                                    if (memberId == ""){
-                                        viewModel.addThreeGen(firstName = editableMember.value.firstName, middleName = editableMember.value.middleName ?: "", lastName = editableMember.value.lastName, town = editableMember.value.town, parentID = editableMember.value.parentID, spouseID = editableMember.value.spouseID, imageUri = editableMember.value.imageUri, childNumber = editableMember.value.childNumber, comment = editableMember.value.comment) { insertedRows ->
-                                            if (insertedRows > 0)
-                                            { Toast.makeText(context, "Successfully insertedRows $insertedRows row(s)!", Toast.LENGTH_SHORT).show() }
-                                            else { Toast.makeText(context, "Insert failed. No rows were inserted.", Toast.LENGTH_SHORT).show() }
+                is MemberState.Loading -> LoadingState()
+                is MemberState.Empty -> EmptyState() //SuccessList
+                is MemberState.Error -> ErrorState(state.message)
+                is MemberState.SuccessList -> SuccessList()
+                is MemberState.Success -> {
+                    val member = state.member
+                    val memberParent = state.parent
+                    val memberSpouse = state.spouse
+
+                    // ✅ Store editable fields together to optimize recomposition
+                    val editableMember = rememberSaveable { mutableStateOf(member) }
+                    val editableParent = rememberSaveable { mutableStateOf(memberParent) }
+                    val editableSpouse = rememberSaveable { mutableStateOf(memberSpouse) } // Added for spouse detail
+
+                    //Box(modifier = Modifier.fillMaxSize().padding(8.dp)) {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize().padding(WindowInsets.navigationBars.asPaddingValues()).padding(WindowInsets.statusBars.asPaddingValues()).padding(PaddingValues(top = 1.dp, bottom = 1.dp))
+                        ) {
+                            //item { PageHeader() }
+                            item {
+                                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically)
+                                {
+                                    AddImage(member, editableMember.value.imageUri ?: "", onImageClick = { zoomedImageUri = it }, onImageUriChange = { uri -> editableMember.value = editableMember.value.copy(imageUri = uri) })
+                                    Spacer(modifier = Modifier.width(16.dp))
+                                    EditableMemberDetails(
+                                        firstName = editableMember.value.firstName, onFirstNameChange = { editableMember.value = editableMember.value.copy(firstName = it) },
+                                        middleName = editableMember.value.middleName ?: "", onMiddleNameChange = { editableMember.value = editableMember.value.copy(middleName = it) },
+                                        lastName = editableMember.value.lastName, onLastNameChange = { editableMember.value = editableMember.value.copy(lastName = it) },
+                                        town = editableMember.value.town, onTownChange = { editableMember.value = editableMember.value.copy(town = it) },
+                                        childNumber = editableMember.value.childNumber?.toString() ?: "", onChildNumberChange = { editableMember.value = editableMember.value.copy(childNumber = it.toIntOrNull()) },
+                                        comment = editableMember.value.comment ?: "", onCommentChange = { editableMember.value = editableMember.value.copy(comment = it) }
+                                    )
+                                }
+                            } // ✅ AddImage, Editable Member Details
+                            item {
+                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                    Text(text = "Created At: ${formatDateTime(member.createdAt)}", fontSize = 8.sp)
+                                    Text(text = "Short Name: ${member.shortName}", fontSize = 8.sp, fontWeight = FontWeight.Bold)
+                                }
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                                    Button(
+                                        onClick = {
+                                            if (memberId == ""){
+                                                viewModel.addThreeGen(firstName = editableMember.value.firstName, middleName = editableMember.value.middleName ?: "", lastName = editableMember.value.lastName, town = editableMember.value.town, parentID = editableMember.value.parentID, spouseID = editableMember.value.spouseID, imageUri = editableMember.value.imageUri, childNumber = editableMember.value.childNumber, comment = editableMember.value.comment) { insertedRows ->
+                                                    if (insertedRows > 0)
+                                                    { Toast.makeText(context, "Successfully insertedRows $insertedRows row(s)!", Toast.LENGTH_SHORT).show() }
+                                                    else { Toast.makeText(context, "Insert failed. No rows were inserted.", Toast.LENGTH_SHORT).show() }
+                                                    navController.popBackStack()
+                                                }
+                                            } else {
+                                                viewModel.updateMember(memberId = member.id, firstName = editableMember.value.firstName, middleName = editableMember.value.middleName ?: "", lastName = editableMember.value.lastName, town = editableMember.value.town, parentID = editableMember.value.parentID, spouseID = editableMember.value.spouseID, imageUri = editableMember.value.imageUri, childNumber = editableMember.value.childNumber, comment = editableMember.value.comment){ updatedRows ->
+                                                    if (updatedRows > 0)
+                                                        { Toast.makeText(context, "Successfully updated $updatedRows row(s)!", Toast.LENGTH_SHORT).show() }
+                                                    else { Toast.makeText(context, "Update failed. No rows were updated.", Toast.LENGTH_SHORT).show() }
+                                                }
+                                            }
+                                            viewModel.clearEditableSpouse() // Clear parent details if parent changed od add
+                                            viewModel.clearEditableParent() // Clear parent details if spouse changed od add
+                                        },
+                                        modifier = Modifier.weight(1f)
+                                    ) { Text(text = "Save") }
+
+                                    Spacer(modifier = Modifier.width(8.dp))
+
+                                    Button(
+                                        onClick = {
+                                            // Handle cancel action
                                             navController.popBackStack()
-                                        }
-                                    } else {
-                                        viewModel.updateMember(memberId = member.id, firstName = editableMember.value.firstName, middleName = editableMember.value.middleName ?: "", lastName = editableMember.value.lastName, town = editableMember.value.town, parentID = editableMember.value.parentID, spouseID = editableMember.value.spouseID, imageUri = editableMember.value.imageUri, childNumber = editableMember.value.childNumber, comment = editableMember.value.comment){ updatedRows ->
-                                            if (updatedRows > 0)
-                                                { Toast.makeText(context, "Successfully updated $updatedRows row(s)!", Toast.LENGTH_SHORT).show() }
-                                            else { Toast.makeText(context, "Update failed. No rows were updated.", Toast.LENGTH_SHORT).show() }
-                                        }
-                                    }
-                                    viewModel.clearEditableSpouse() // Clear parent details if parent changed od add
-                                    viewModel.clearEditableParent() // Clear parent details if spouse changed od add
-                                },
-                                modifier = Modifier.weight(1f)
-                            ) { Text(text = "Save") }
-
-                            Spacer(modifier = Modifier.width(8.dp))
-
-                            Button(
-                                onClick = {
-                                    // Handle cancel action
-                                    navController.popBackStack()
-                                    Toast.makeText(context, "Action cancelled!", Toast.LENGTH_SHORT).show()
-                                },
-                                modifier = Modifier.weight(1f)
-                            ) { Text(text = "Cancel") }
+                                            Toast.makeText(context, "Action cancelled!", Toast.LENGTH_SHORT).show()
+                                        },
+                                        modifier = Modifier.weight(1f)
+                                    ) { Text(text = "Cancel") }
+                                }
+                            } // ✅ Created, ShortName, Save Cancel Buttons
+                            item {
+                                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                                ParentDetail(editableMember = editableMember, editableParent = editableParent, navController = navController, viewModel = viewModel, onImageClick = { zoomedImageUri = it })
+                            } // ✅ Parent Detail
+                            item {
+                                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                                SpouseDetail(editableMember = editableMember, editableSpouse = editableSpouse, navController = navController, viewModel = viewModel, onImageClick = { zoomedImageUri = it })
+                            } // ✅ Spouse Detail
+                            item {
+                                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                                ActionButtons(navController, viewModel, member)
+                            } // ✅ Action Buttons Familytree, Delete
                         }
-                    } // ✅ Created, ShortName, Save Cancel Buttons
-                    item {
-                        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-                        ParentDetail(editableMember = editableMember, editableParent = editableParent, navController = navController, viewModel = viewModel, onImageClick = { zoomedImageUri = it })
-                    } // ✅ Parent Detail
-                    item {
-                        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-                        SpouseDetail(editableMember = editableMember, editableSpouse = editableSpouse, navController = navController, viewModel = viewModel, onImageClick = { zoomedImageUri = it })
-                    } // ✅ Spouse Detail
-                    item {
-                        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-                        ActionButtons(navController, viewModel, member)
-                    } // ✅ Action Buttons Familytree, Delete
+                        // ✅ Image Zoom Overlay
+                        zoomedImageUri?.let { ImageOverlay(it) { zoomedImageUri = null } }
+                    //}
                 }
-                // ✅ Image Zoom Overlay
-                zoomedImageUri?.let { ImageOverlay(it) { zoomedImageUri = null } }
-            }
+            } // when block in member detail screen
         }
-    } // when block in member detail screen
+    } // Top Most Column in MemberDetailScreen
 } // MemberDetailScreen
 
 // ✅ Loading State
