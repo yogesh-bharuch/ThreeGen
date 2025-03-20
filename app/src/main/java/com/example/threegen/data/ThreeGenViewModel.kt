@@ -15,8 +15,12 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import java.util.UUID
 
@@ -237,40 +241,56 @@ class ThreeGenViewModel(
         return name.lowercase().replaceFirstChar { it.uppercase() }
     }
 
-    // Method to sync local data to Firestore with a callback for the result message
+    // ✅  Method to sync local data to Firestore---------------------------------------------------------------------------------------------------------------
+    //  with a callback for the result message
+    private val _syncMessage = MutableStateFlow("")
+    val syncMessage: StateFlow<String> = _syncMessage
+
     fun syncLocalDataToFirestore(callback: (String) -> Unit) {
 
         val currentUserId = auth.currentUser?.uid
         //val currentUser = FirebaseAuth.getInstance().currentUser
         if (currentUserId == null) {
-            Log.d("FirestoreViewModel", "Not authenticated user cannot perform sync action")
-            //Toast.makeText(context, "Not authenticated user cannot perform sync action", Toast.LENGTH_LONG).show()
+            _syncMessage.value = "Not authenticated user cannot perform sync action"
+            callback("Not authenticated user cannot perform sync action")
             return
         }
-        Log.d("FirestoreViewModel", "Syncing local data to Firestore by: $currentUserId")
+
         val messages = mutableListOf<String>()
         viewModelScope.launch(Dispatchers.IO) {
             val allMembers = repository.getAllMembers()
-            Log.d("FirestoreViewModel", "All members: ${allMembers.size}")
             // update only syncstatus is !SYNCED
-            allMembers.forEach { member ->
-                if (member.syncStatus != SyncStatus.SYNCED) {
-                    Log.d("FirestoreViewModel", "Updating member in Firestore: ${member.firstName}")
-                    updateFirestore(member, messages)
+            // ✅ Use async to launch Firestore updates concurrently
+            val tasks = allMembers
+                .filter { it.syncStatus != SyncStatus.SYNCED }
+                .map { member ->
+                    async {
+                        updateFirestore(member, messages)
+                    }
                 }
-            }
+
+            // ✅ Wait for all Firestore operations to finish
+            tasks.awaitAll()
 
             // Return the messages after syncing
             withContext(Dispatchers.Main) {
-                callback(messages.joinToString("\n"))
+                val resultMessage = messages.joinToString("\n").ifEmpty { "No members to sync" }
+                Log.d("FirestoreViewModel", "Final Sync Message: $resultMessage")
+                // 🔥 Force state change by resetting first
+                _syncMessage.value = ""
+                delay(100)  // Small delay to ensure UI detects the change
+                _syncMessage.value = messages.joinToString("\n")
+                // ✅ Trigger the callback with the final message
+                callback(resultMessage)
             }
         }
     }
 
     // called from above syncLocalDataToFirestore
-    // Method to update Firestore with member data and collect update messages
-    private fun updateFirestore(threeGen: ThreeGen, messages: MutableList<String>) {
-        Log.d("FirestoreViewModel", "Updating member in Firestore from updateFirestre function: ${threeGen.firstName}")
+    private suspend fun updateFirestore(threeGen: ThreeGen, messages: MutableList<String>) {
+        // Method to update Firestore with member data and collect update messages
+        Log.d("FirestoreViewModel", "Updating member in Firestore: ${threeGen.firstName}")
+
         val data = mapOf(
             "id" to threeGen.id,
             "firstName" to threeGen.firstName,
@@ -282,36 +302,32 @@ class ThreeGenViewModel(
             "childNumber" to threeGen.childNumber,
             "comment" to threeGen.comment,
             "createdAt" to threeGen.createdAt,
-            //"syncStatus" to threeGen.syncStatus.name,
-            //"deleted" to threeGen.deleted,
             "createdBy" to threeGen.createdBy,
             "parentID" to threeGen.parentID,
             "spouseID" to threeGen.spouseID
-            //"ownerId" to currentUser?.uid // ✅ Store the owner's UID
         )
-        Log.d("FirestoreViewModel", "Data to update: $data")
-        val documentPath = firestore.collection("ThreeGenMembers").document(threeGen.id).path
-        Log.d("FirestoreViewModel", "Firestore Document Path: $documentPath")
 
+        try {
+            firestore.collection("ThreeGenMembers")
+                .document(threeGen.id)
+                .set(data)
+                .await()
 
-        firestore.collection("ThreeGenMembers")
-            .document(threeGen.id)
-            .set(data)
-            .addOnSuccessListener {
-                Log.d("FirestoreViewModel", "DocumentSnapshot successfully updated! $data")
-                // Add success message
-                messages.add("Updated member: ${threeGen.firstName} ${threeGen.lastName}")
-                viewModelScope.launch(Dispatchers.IO) {
-                    val updatedMember = threeGen.copy(syncStatus = SyncStatus.SYNCED)
-                    repository.updateThreeGen(updatedMember)
-                }
+            Log.d("FirestoreViewModel", "Document successfully updated: ${threeGen.firstName}")
+            messages.add("Updated in FireStore member: ${threeGen.firstName} ${threeGen.lastName}")
+
+            // ✅ Update local sync status
+            viewModelScope.launch(Dispatchers.IO) {
+                val updatedMember = threeGen.copy(syncStatus = SyncStatus.SYNCED)
+                repository.updateThreeGen(updatedMember)
             }
-            .addOnFailureListener { e ->
-                Log.e("FirestoreViewModel", "Error updating document: ${e.message}", e)
-                messages.add("Failed to update member: ${threeGen.firstName} ${threeGen.lastName} - Error: ${e.localizedMessage}")
-            }
+
+        } catch (e: Exception) {
+            Log.e("FirestoreViewModel", "Error updating document: ${e.message}", e)
+            messages.add("Failed to update member: ${threeGen.firstName} ${threeGen.lastName} - Error: ${e.localizedMessage}")
+        }
     }
-
+    //------------------------------------------------------------------------------------------------------------------
 
     // Method to sync deletions to Firestore
     /*

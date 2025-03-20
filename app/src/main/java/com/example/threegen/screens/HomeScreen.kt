@@ -34,6 +34,7 @@ fun HomeScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val syncMessage by viewModel.syncMessage.collectAsState()
     //val authState by authViewModel.authState.collectAsState()
 
     Scaffold(
@@ -61,24 +62,30 @@ fun HomeScreen(
             NavigationButton("Go To All Members Family Tree") { navController.navigate(MemberTree) }
             //NavigationButton("Go To All Members Family Tree") { navController.navigate(MemberTree(id = 8)) }
             NavigationButton("Go To Unused Members") { navController.navigate(UnusedMembers) }
-            var retMessage : String = "" //List<String>
+            //var retMessage : String = "" //List<String>
             Button(
                 onClick = {
                     viewModel.syncLocalDataToFirestore { message ->
                         Toast.makeText(context, message, Toast.LENGTH_LONG).show()
-                        retMessage = message
+                        Log.d("FirestoreViewModel", "Callback message: $message")
                     }
-                    Log.d("FirestoreViewModel", "retMessage from Home screen SYnc Data button click after onClick method: $retMessage")
+                    //Log.d("FirestoreViewModel", "retMessage from Home screen SYnc Data button click after onClick method: $retMessage")
                 },
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(text = "Sync Data")
             }
-            Log.d("FirestoreViewModel", "retMessage from homescreen result of onclick: $retMessage")
-
+            // Display message after sync completion
+            LaunchedEffect(syncMessage) {
+                if (syncMessage.isNotEmpty()) {
+                    Log.d("FirestoreViewModel", "LaunchedEffect Triggered: $syncMessage")
+                    Toast.makeText(context, syncMessage, Toast.LENGTH_LONG).show()
+                }
+            }
         }
     }
 }
+
 
 
 
