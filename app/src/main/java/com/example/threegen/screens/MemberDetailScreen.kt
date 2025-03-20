@@ -40,6 +40,7 @@ import com.example.threegen.SelectMemberParent
 import com.example.threegen.SelectMemberSpouse
 import com.example.threegen.util.CustomTopBar
 import com.example.threegen.util.MemberState
+import com.example.threegen.util.SnackbarManager
 import com.example.threegen.util.formatDateTime
 
 @Composable
@@ -103,16 +104,20 @@ fun MemberDetailScreen(memberId: String, navController: NavHostController, viewM
                                         onClick = {
                                             if (memberId == ""){
                                                 viewModel.addThreeGen(firstName = editableMember.value.firstName, middleName = editableMember.value.middleName ?: "", lastName = editableMember.value.lastName, town = editableMember.value.town, parentID = editableMember.value.parentID, spouseID = editableMember.value.spouseID, imageUri = editableMember.value.imageUri, childNumber = editableMember.value.childNumber, comment = editableMember.value.comment) { insertedRows ->
-                                                    if (insertedRows > 0)
-                                                    { Toast.makeText(context, "Successfully insertedRows $insertedRows row(s)!", Toast.LENGTH_SHORT).show() }
-                                                    else { Toast.makeText(context, "Insert failed. No rows were inserted.", Toast.LENGTH_SHORT).show() }
+                                                    if (insertedRows > 0) {
+                                                        SnackbarManager.showMessage("Successfully inserted Row number: $insertedRows row(s)!")
+                                                    } else {
+                                                        SnackbarManager.showMessage("Insert failed. No rows were inserted.")
+                                                    } // ✅ Snackbar Message
                                                     navController.popBackStack()
                                                 }
                                             } else {
                                                 viewModel.updateMember(memberId = member.id, firstName = editableMember.value.firstName, middleName = editableMember.value.middleName ?: "", lastName = editableMember.value.lastName, town = editableMember.value.town, parentID = editableMember.value.parentID, spouseID = editableMember.value.spouseID, imageUri = editableMember.value.imageUri, childNumber = editableMember.value.childNumber, comment = editableMember.value.comment){ updatedRows ->
-                                                    if (updatedRows > 0)
-                                                        { Toast.makeText(context, "Successfully updated $updatedRows row(s)!", Toast.LENGTH_SHORT).show() }
-                                                    else { Toast.makeText(context, "Update failed. No rows were updated.", Toast.LENGTH_SHORT).show() }
+                                                    if (updatedRows > 0) {
+                                                        SnackbarManager.showMessage("Successfully updated $updatedRows row(s)!")
+                                                    } else {
+                                                        SnackbarManager.showMessage("Update failed. No rows were updated.")
+                                                    } // ✅ Snackbar Message
                                                 }
                                             }
                                             viewModel.clearEditableSpouse() // Clear parent details if parent changed od add

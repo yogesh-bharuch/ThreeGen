@@ -23,6 +23,7 @@ import com.example.threegen.*
 import com.example.threegen.data.ThreeGenViewModel
 import com.example.threegen.login.AuthViewModel
 import com.example.threegen.login.AuthState
+import com.example.threegen.util.SnackbarManager
 import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -66,7 +67,8 @@ fun HomeScreen(
             Button(
                 onClick = {
                     viewModel.syncLocalDataToFirestore { message ->
-                        Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+                        SnackbarManager.showMessage(message)
+                        //Toast.makeText(context, message, Toast.LENGTH_LONG).show()
                         Log.d("FirestoreViewModel", "Callback message: $message")
                     }
                     //Log.d("FirestoreViewModel", "retMessage from Home screen SYnc Data button click after onClick method: $retMessage")
@@ -79,7 +81,7 @@ fun HomeScreen(
             LaunchedEffect(syncMessage) {
                 if (syncMessage.isNotEmpty()) {
                     Log.d("FirestoreViewModel", "LaunchedEffect Triggered: $syncMessage")
-                    Toast.makeText(context, syncMessage, Toast.LENGTH_LONG).show()
+                    //Toast.makeText(context, syncMessage, Toast.LENGTH_LONG).show()
                 }
             }
         }

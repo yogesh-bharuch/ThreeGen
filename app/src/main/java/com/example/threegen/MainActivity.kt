@@ -7,7 +7,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
+import androidx.compose.material3.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.rememberNavController
@@ -19,11 +19,9 @@ import com.example.threegen.data.ThreeGenViewModel
 import com.example.threegen.data.ThreeGenViewModelFactory
 import com.example.threegen.ui.theme.ThreeGenTheme
 import com.example.threegen.util.RequestPermissions
+import com.example.threegen.util.SnackbarManager
 
-/**
- * MainActivity serves as the entry point of the application.
- * It initializes UI components, ViewModels, navigation, and requests necessary permissions.
- */
+@OptIn(ExperimentalMaterial3Api::class)
 class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -38,18 +36,9 @@ class MainActivity : ComponentActivity() {
         val auth = com.google.firebase.auth.FirebaseAuth.getInstance()
 
         // Initialize ViewModels using custom factories
-        val viewModel: ThreeGenViewModel by viewModels {
-            ThreeGenViewModelFactory(dao, firestore)
-        }
-
-        val viewModelNew: NewThreeGenViewModel by viewModels {
-            NewThreeGenViewModelFactory(dao, firestore)
-        }
-
-        val authViewModel: AuthViewModel by viewModels {
-            AuthViewModelFactory(auth)
-        }
-
+        val viewModel: ThreeGenViewModel by viewModels { ThreeGenViewModelFactory(dao, firestore) }
+        val viewModelNew: NewThreeGenViewModel by viewModels { NewThreeGenViewModelFactory(dao, firestore) }
+        val authViewModel: AuthViewModel by viewModels { AuthViewModelFactory(auth) }
 
         // Set up the Jetpack Compose UI
         setContent {
@@ -58,17 +47,17 @@ class MainActivity : ComponentActivity() {
                 // Initialize Jetpack Navigation Controller
                 val navController = rememberNavController()
 
-                /*
-                val viewModel: ThreeGenViewModel = viewModel()
-                val viewModelNew: NewThreeGenViewModel = viewModel()
-                */ //old without factory
                 // ✅ Request necessary permissions for accessing storage, camera, etc.
-                // This must be inside the Composable scope to work correctly.
                 RequestPermissions(activity = this@MainActivity)
 
                 // Scaffold provides a layout structure with top bars, bottom bars, etc.
                 Scaffold(
-                    modifier = Modifier.fillMaxSize() // Use the full screen size
+                    modifier = Modifier.fillMaxSize(),
+
+                    // ✅ Include global SnackbarHost
+                    snackbarHost = {
+                        SnackbarHost(SnackbarManager.getSnackbarHostState())
+                    }
                 ) { innerPadding ->
 
                     // Load the main navigation graph of the app
@@ -78,15 +67,14 @@ class MainActivity : ComponentActivity() {
                         viewModelNew = viewModelNew,
                         authViewModel = authViewModel,
                         modifier = Modifier
-                            .padding(innerPadding) // Adjust padding for system bars
-                            .padding(8.dp) // Add additional padding for UI spacing
+                            .padding(innerPadding)  // Adjust padding for system bars
+                            .padding(8.dp)          // Add additional padding for UI spacing
                     )
                 }
             }
         }
     }
 }
-
 
 
 
