@@ -51,17 +51,6 @@ class ThreeGenViewModel(
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
 
-    // ✅ Ensure filtering is applied correctly
-/*
-    @OptIn(FlowPreview::class)
-    val filteredMembers: StateFlow<List<ThreeGen>> = _searchQuery
-        .debounce(300) // Prevents excessive updates while typing
-        .combine(_threeGenList) { query, list ->
-            if (query.isBlank()) list else list.filter { it.shortName.contains(query, ignoreCase = true) }
-        }
-        .distinctUntilChanged() // ✅ Avoid recompositions if the result is the same
-        .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
-*/
     // ✅ Fetches members and updates UI state
     fun fetchMembers() {
         viewModelScope.launch {
@@ -85,60 +74,8 @@ class ThreeGenViewModel(
     }
 
 
-    /*// ✅ Fetches a single member's state
-    fun getMemberState(memberId: String): StateFlow<MemberState> {
-        val stateFlow = MutableStateFlow<MemberState>(MemberState.Loading)
-
-        viewModelScope.launch(Dispatchers.IO) {
-            try {
-                val member = repository.getMemberByIdSync(memberId)
-                val parent = member?.parentID?.let { repository.getMemberByIdSync(it) }
-                val spouse = member?.spouseID?.let { repository.getMemberByIdSync(it) }
-                withContext(Dispatchers.Main) {
-                    //stateFlow.value = member?.let { MemberState.Success(it) } ?: MemberState.Empty
-                    if (member != null) {
-                        stateFlow.value = MemberState.Success(member, parent, spouse)
-                    } else {
-                        stateFlow.value = MemberState.Empty
-                    }
-                }
-            } catch (e: Exception) {
-                withContext(Dispatchers.Main) {
-                    stateFlow.value = MemberState.Error(e.message ?: "Unknown error")
-                }
-            }
-        }
-
-        return stateFlow.asStateFlow()
-    }
-    */
-    /*
-    fun fetchMemberDetails(memberId: String) {
-
-        viewModelScope.launch {
-            _memberState.value = MemberState.Loading
-            Log.d("MemberDetailViewModel", "State updated: Loading") // ✅ Log when loading starts
-
-            try {
-                val member = repository.getMemberById(memberId).asFlow().firstOrNull()
-                val parent = member?.parentID?.let { repository.getMemberById(it).asFlow().firstOrNull() }
-                val spouse = member?.spouseID?.let { repository.getMemberById(it).asFlow().firstOrNull() }
-
-                _memberState.value = if (member != null) {
-                    Log.d("MemberDetailViewModel", "State updated: Success") // ✅ Log success state
-                    MemberState.Success(member, parent, spouse)
-                } else {
-                    Log.d("MemberDetailViewModel", "State updated: Empty") // ✅ Log empty state
-                    MemberState.Empty
-                }
-            } catch (e: Exception) {
-                Log.d("MemberDetailViewModel", "State updated: Error") // ✅ Log error state
-                _memberState.value = MemberState.Error(e.message ?: "Unknown error")
-            }
-        }
-    }
-*/
-    fun fetchMemberDetails(memberId: String?) {
+      // ✅ Fetches a single member's state
+      fun fetchMemberDetails(memberId: String?) {
         viewModelScope.launch {
             Log.d("MemberDetailViewModel", "fetchMemberDetails called with memberId: $memberId") // ✅ Log memberId
             _memberState.value = MemberState.Loading
@@ -187,12 +124,12 @@ class ThreeGenViewModel(
     private val _editableParent = MutableLiveData<ThreeGen?>()
     val editableParent: LiveData<ThreeGen?> get() = _editableParent
 
-    // Function to update the editable parent
+    // Function to update the editable parent  used while navigating to select spouse
     fun setEditableParent(membersParent: ThreeGen) {
         _editableParent.value = membersParent
     }
 
-    // Function to clear the editable Spouse (optional)
+    // Function to clear the editable Spouse (optional) used while navigating back after select
     fun clearEditableParent() {
         _editableParent.value = null
     }
@@ -200,30 +137,19 @@ class ThreeGenViewModel(
     private val _editableSpouse = MutableLiveData<ThreeGen?>()
     val editableSpouse: LiveData<ThreeGen?> get() = _editableSpouse
 
-    // Function to update the editable parent
+    // Function to update the editable spouse used while navigating to select spouse
     fun setEditableSpouse(membersSpouse: ThreeGen) {
         _editableSpouse.value = membersSpouse
     }
 
-    // Function to clear the editable parent (optional)
+    // Function to clear the editable parent (optional)  used while navigating back after select spouse
     fun clearEditableSpouse() {
         _editableSpouse.value = null
     }
     //-----------------------------------
 
     // ✅ Adds a new member to the database
-    fun addThreeGen(
-        firstName: String,
-        middleName: String,
-        lastName: String,
-        town: String,
-        imageUri: String?,
-        parentID: String?,
-        spouseID: String?,
-        childNumber: Int? = 1,
-        comment: String? = null,
-        onResult: (Int) -> Unit
-    ) {
+    fun addThreeGen(firstName: String, middleName: String, lastName: String, town: String, imageUri: String?, parentID: String?, spouseID: String?, childNumber: Int? = 1, comment: String? = null, onResult: (Int) -> Unit) {
         if (firstName.isBlank() || middleName.isBlank() || lastName.isBlank() || town.isBlank()) {
             Log.e("ThreeGenViewModel", "Validation failed: All name fields and town are required")
             onResult(0) // Signal failure
@@ -276,27 +202,6 @@ class ThreeGenViewModel(
             withContext(Dispatchers.Main) {
                 onResult(updatedRows)
             }
-            //Log.d("update member", "updating member from viewmodel after Repo: $updatedRows")
-/*
-
-            withContext(Dispatchers.Main) {
-                _memberState.value = MemberState.Loading // 🔥 Force UI to refresh
-
-                // 🔥 Fetch the updated member from the database after saving
-                val freshMember = repository.getMemberByIdSync(memberId)
-                val parent = freshMember?.parentID?.let { repository.getMemberByIdSync(it) }
-                val spouse = freshMember?.spouseID?.let { repository.getMemberByIdSync(it) }
-
-                Log.d("yogesh", "Freshly fetched member from viewmodel after repo update call: $freshMember")
-                _memberState.value = freshMember?.let {
-                    MemberState.Success(it, parent, spouse) //where it is the freshMember passed from the database
-                } ?: MemberState.Empty
-
-                Log.d("ViewModel", "State updated to : ${_memberState.value}")
-            }
-*/
-
-            //fetchMembers() // ✅ Refresh list after updating
         }
     }
 
