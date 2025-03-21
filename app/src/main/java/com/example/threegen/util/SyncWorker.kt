@@ -26,12 +26,12 @@ class SyncWorker(
         val viewModel = ThreeGenViewModel.getInstance(applicationContext)
 
         val syncTime = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
-        Log.d("SyncWorker", "🔥 SyncWorker started at: $syncTime")
+        Log.d("SyncWorker", "🔥 From SyncWorker Sync started at: $syncTime")
 
         return try {
             runBlocking {
                 viewModel.syncLocalDataToFirestore { message ->
-                    Log.d("SyncWorker", "🔥 Sync completed: $message")
+                    Log.d("SyncWorker", "🔥 From SyncWorker Sync completed: $message")
                 }
             }
             // ✅ Return success if sync works fine
