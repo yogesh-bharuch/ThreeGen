@@ -20,6 +20,7 @@ import com.example.threegen.data.ThreeGenViewModelFactory
 import com.example.threegen.ui.theme.ThreeGenTheme
 import com.example.threegen.util.RequestPermissions
 import com.example.threegen.util.SnackbarManager
+import com.example.threegen.util.WorkManagerHelper
 
 @OptIn(ExperimentalMaterial3Api::class)
 class MainActivity : ComponentActivity() {
@@ -39,6 +40,9 @@ class MainActivity : ComponentActivity() {
         val viewModel: ThreeGenViewModel by viewModels { ThreeGenViewModelFactory(dao, firestore) }
         val viewModelNew: NewThreeGenViewModel by viewModels { NewThreeGenViewModelFactory(dao, firestore) }
         val authViewModel: AuthViewModel by viewModels { AuthViewModelFactory(auth) }
+
+        // ✅ Schedule background sync automatically
+        WorkManagerHelper.schedulePeriodicSync(applicationContext)
 
         // Set up the Jetpack Compose UI
         setContent {

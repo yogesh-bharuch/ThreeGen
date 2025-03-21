@@ -24,6 +24,7 @@ import com.example.threegen.data.ThreeGenViewModel
 import com.example.threegen.login.AuthViewModel
 import com.example.threegen.login.AuthState
 import com.example.threegen.util.SnackbarManager
+import com.example.threegen.util.WorkManagerHelper
 import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -66,11 +67,15 @@ fun HomeScreen(
             //var retMessage : String = "" //List<String>
             Button(
                 onClick = {
+                    WorkManagerHelper.scheduleImmediateSync(context)
+
+                    /*
                     viewModel.syncLocalDataToFirestore { message ->
                         SnackbarManager.showMessage(message)
                         //Toast.makeText(context, message, Toast.LENGTH_LONG).show()
                         Log.d("FirestoreViewModel", "Callback message: $message")
                     }
+                    */
                     //Log.d("FirestoreViewModel", "retMessage from Home screen SYnc Data button click after onClick method: $retMessage")
                 },
                 modifier = Modifier.fillMaxWidth()

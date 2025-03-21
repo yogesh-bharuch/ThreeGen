@@ -1,20 +1,17 @@
 package com.example.threegen.data
 
+import android.content.Context
 import android.util.Log
-import android.widget.Toast
-import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.asFlow
-import androidx.lifecycle.asLiveData
 import androidx.lifecycle.viewModelScope
 import com.example.threegen.MainApplication
 import com.example.threegen.util.MemberState
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.delay
@@ -22,7 +19,6 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
-import java.util.UUID
 
 class ThreeGenViewModel(
     private val dao: ThreeGenDao,
@@ -37,19 +33,33 @@ class ThreeGenViewModel(
         repository = ThreeGenRepository(threeGenDao)
     }
 
+    // ✅ Singleton instance for consistent ViewModel reference
+    companion object {
+        @Volatile
+        private var instance: ThreeGenViewModel? = null
+
+        fun getInstance(applicationContext: Context): ThreeGenViewModel {
+            return instance ?: synchronized(this) {
+                instance ?: createViewModel().also { instance = it }
+            }
+        }
+
+        private fun createViewModel(): ThreeGenViewModel {
+            val dao = MainApplication.threeGenDatabase.getThreeGenDao()
+            val firestore = FirebaseFirestore.getInstance()
+            return ThreeGenViewModel(dao, firestore)
+        }
+    }
+
     // ✅ Holds the full list of members from the database
     private val _threeGenList = MutableStateFlow<List<ThreeGen>>(emptyList())
     val threeGenList: StateFlow<List<ThreeGen>> = _threeGenList
-
-        // ✅ Prevent unnecessary updates
-        .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
-
+        .stateIn(viewModelScope, SharingStarted.Lazily, emptyList()) // ✅ Prevent unnecessary updates
 
     // ✅ UI State management for the list
     private val _memberState = MutableStateFlow<MemberState>(MemberState.Loading)
     val memberState: StateFlow<MemberState> = _memberState
-        // ✅ Prevent redundant updates
-        .stateIn(viewModelScope, SharingStarted.Lazily, MemberState.Loading)
+        .stateIn(viewModelScope, SharingStarted.Lazily, MemberState.Loading) // ✅ Prevent redundant updates
 
     // ✅ Search query for filtering members
     private val _searchQuery = MutableStateFlow("")
