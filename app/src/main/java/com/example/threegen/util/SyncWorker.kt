@@ -4,7 +4,8 @@ import android.content.Context
 import android.util.Log
 import androidx.work.*
 import com.example.threegen.data.ThreeGenViewModel
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -26,19 +27,34 @@ class SyncWorker(
         val viewModel = ThreeGenViewModel.getInstance(applicationContext)
 
         val syncTime = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
-        Log.d("SyncWorker", "🔥 From SyncWorker Sync started at: $syncTime")
+        Log.d("ThreeGenSync", "🔥 From SyncWorker Sync started at: $syncTime")
 
         return try {
-            runBlocking {
+            var syncResult = "From SyncWorker: No changes synced"
+
+            // ✅ Use coroutine for proper async handling
+            withContext(Dispatchers.IO) {
                 viewModel.syncLocalDataToFirestore { message ->
-                    Log.d("SyncWorker", "🔥 From SyncWorker Sync completed: $message")
+                    syncResult = message
+                    Log.d("ThreeGenSync", "🔥 From SyncWorker Sync completed: $message")
                 }
             }
-            // ✅ Return success if sync works fine
-            Result.success()
+            // ✅ Log the success result
+            Log.d("ThreeGenSync", "🔥 From SyncWorkerSync success: $syncResult")
+
+            // ✅ Return success with the sync result
+            Result.success(
+                workDataOf("SYNC_RESULT" to syncResult)
+            )
+            // ✅ Return success with sync result data
+            //val outputData = Data.Builder()
+            //    .putString("SYNC_RESULT", syncResult)
+            //    .build()
+
+            //Result.success(outputData)
 
         } catch (e: Exception) {
-            Log.e("SyncWorker", "🔥 Sync failed: ${e.localizedMessage}", e)  // ✅ Log errors properly
+            Log.e("ThreeGenSync", "🔥 From SyncWorker Sync failed: ${e.localizedMessage}", e)  // ✅ Log errors properly
             Result.retry()
         }
     }
@@ -70,51 +86,7 @@ class SyncWorker(
                 periodicSyncRequest
             )
 
-            println("🔥 Periodic sync scheduled")
+            Log.d("ThreeGenSync", "🔥 Periodic sync scheduled")
         }
     }
 }
-
-
-
-/*
-package com.example.threegen.util
-
-import android.content.Context
-import androidx.work.Worker
-import androidx.work.WorkerParameters
-import com.example.threegen.data.ThreeGenViewModel
-import kotlinx.coroutines.runBlocking
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
-
-/**
- * SyncWorker handles the background sync job for Firestore.
- * It is triggered by WorkManager and runs when the network is available.
- */
-class SyncWorker(
-    context: Context,
-    params: WorkerParameters
-) : Worker(context, params) {
-
-    /**
-     * Called by WorkManager to perform the sync operation.
-     */
-    override fun doWork(): Result {
-        val viewModel = ThreeGenViewModel.getInstance(applicationContext)
-
-        val syncTime = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
-        println("🔥 SyncWorker started at: $syncTime")
-
-        // Perform the sync using a coroutine
-        runBlocking {
-            viewModel.syncLocalDataToFirestore { message ->
-                println("🔥 Sync completed: $message")
-            }
-        }
-
-        return Result.success()
-    }
-}
-*/

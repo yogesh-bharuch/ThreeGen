@@ -1,31 +1,21 @@
-
 package com.example.threegen.screens
 
 import android.util.Log
-import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
-import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import com.example.threegen.*
 import com.example.threegen.data.ThreeGenViewModel
 import com.example.threegen.login.AuthViewModel
-import com.example.threegen.login.AuthState
 import com.example.threegen.util.SnackbarManager
 import com.example.threegen.util.WorkManagerHelper
-import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -36,8 +26,6 @@ fun HomeScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    val syncMessage by viewModel.syncMessage.collectAsState()
-    //val authState by authViewModel.authState.collectAsState()
 
     Scaffold(
         topBar = {
@@ -62,39 +50,22 @@ fun HomeScreen(
             NavigationButton("Add New Member") { navController.navigate(AddMember) }
             NavigationButton("View All Members") { navController.navigate(ListScreen) }
             NavigationButton("Go To All Members Family Tree") { navController.navigate(MemberTree) }
-            //NavigationButton("Go To All Members Family Tree") { navController.navigate(MemberTree(id = 8)) }
             NavigationButton("Go To Unused Members") { navController.navigate(UnusedMembers) }
-            //var retMessage : String = "" //List<String>
+
+            // ✅ Manual Sync Button
             Button(
                 onClick = {
+                    // ✅ Trigger manual sync (no result callback needed)
                     WorkManagerHelper.scheduleImmediateSync(context)
-
-                    /*
-                    viewModel.syncLocalDataToFirestore { message ->
-                        SnackbarManager.showMessage(message)
-                        //Toast.makeText(context, message, Toast.LENGTH_LONG).show()
-                        Log.d("FirestoreViewModel", "Callback message: $message")
-                    }
-                    */
-                    //Log.d("FirestoreViewModel", "retMessage from Home screen SYnc Data button click after onClick method: $retMessage")
+                    Log.d("HomeScreen", "🔥 Manual sync triggered")
                 },
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(text = "Sync Data")
             }
-            // Display message after sync completion
-            LaunchedEffect(syncMessage) {
-                if (syncMessage.isNotEmpty()) {
-                    Log.d("FirestoreViewModel", "LaunchedEffect Triggered: $syncMessage")
-                    //Toast.makeText(context, syncMessage, Toast.LENGTH_LONG).show()
-                }
-            }
         }
     }
 }
-
-
-
 
 /**
  * NavigationButton - A reusable composable function for creating navigation buttons.
@@ -111,7 +82,6 @@ fun NavigationButton(text: String, onClick: () -> Unit) {
         Text(text = text)
     }
 }
-
 
 
 

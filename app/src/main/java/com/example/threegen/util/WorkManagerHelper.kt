@@ -1,7 +1,11 @@
 package com.example.threegen.util
 
 import android.content.Context
+import android.util.Log
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.LiveData
 import androidx.work.*
+import java.util.UUID
 import java.util.concurrent.TimeUnit
 
 /**
@@ -10,57 +14,105 @@ import java.util.concurrent.TimeUnit
 object WorkManagerHelper {
 
     /**
-     * ✅ Schedules an immediate one-time sync with network constraints and retry strategy.
-     */
+     * ✅ Schedules an immediate one-time sync and observes the result.
+     */// : WorkRequest
     fun scheduleImmediateSync(context: Context) {
         val constraints = Constraints.Builder()
-            .setRequiredNetworkType(NetworkType.CONNECTED)  // Only sync when connected
+            .setRequiredNetworkType(NetworkType.CONNECTED)
             .build()
 
         val syncRequest = OneTimeWorkRequestBuilder<SyncWorker>()
             .setConstraints(constraints)
-            .setBackoffCriteria(                             // ✅ Retry on failure
+            .setBackoffCriteria(
                 BackoffPolicy.EXPONENTIAL,
                 30, TimeUnit.SECONDS
             )
-            .addTag("ImmediateSync")                         // 🔥 Unique tag for one-time sync
+            .addTag("ImmediateSync")
             .build()
 
-        WorkManager.getInstance(context)
-            .enqueueUniqueWork(                             // ✅ Prevent duplicate immediate syncs
-                "ImmediateSync",
-                ExistingWorkPolicy.REPLACE,
-                syncRequest
-            )
+        val workManager = WorkManager.getInstance(context)
+
+        // ✅ Enqueue the sync worker
+        workManager.enqueueUniqueWork(
+            "ImmediateSync",
+            ExistingWorkPolicy.REPLACE,
+            syncRequest
+        )
+        Log.d("ThreeGenSync", "🔥 From WorkManagerHelper Immediate sync scheduled")
+
+        //return syncRequest
     }
 
     /**
-     * ✅ Schedules periodic background sync with network constraints and retry strategy.
-     * Period: Every 6 hours.
-     */
+     * ✅ Observes the sync result and logs it.
+     */ //workId: UUID
+    fun observeSyncResult(context: Context, lifecycleOwner: LifecycleOwner, onResult: (String) -> Unit) {
+        val workManager = WorkManager.getInstance(context)
+
+        // ✅ Get LiveData<WorkInfo?>
+        //val workInfoLiveData: LiveData<WorkInfo?> = workManager.getWorkInfoByIdLiveData(workId)
+
+        //fun observeSyncResult(context: Context, lifecycleOwner: LifecycleOwner, onResult: (String) -> Unit) {
+        //    val workManager = WorkManager.getInstance(context)
+
+            // ✅ Observe manual sync results
+            workManager.getWorkInfosByTagLiveData("ImmediateSync")
+                .observe(lifecycleOwner) { workInfos ->
+                    for (workInfo in workInfos) {
+                        if (workInfo.state == WorkInfo.State.SUCCEEDED) {
+                            val resultMessage =
+                                workInfo.outputData.getString("SYNC_RESULT") ?: "Sync completed"
+                            Log.d(
+                                "ThreeGenSync",
+                                "🔥 From WorkManagerHelper Manual Sync Result: $resultMessage"
+                            )
+                            onResult(resultMessage)
+                        }
+                    }
+
+            }
+            // ✅ Observe periodic sync results
+            workManager.getWorkInfosByTagLiveData("PeriodicSync").observe(lifecycleOwner) { workInfos ->
+                for (workInfo in workInfos) {
+                    if (workInfo.state == WorkInfo.State.SUCCEEDED) {
+                        val resultMessage = workInfo.outputData.getString("SYNC_RESULT") ?: "Periodic sync completed"
+                        Log.d("ThreeGenSync", "🔥 From WorkManagerHelper Periodic Sync Result: $resultMessage")
+                        onResult(resultMessage)
+                    }
+                }
+            }
+        //}
+    }
+
+    /**
+     * ✅ Schedules periodic sync (every 15 minutes) and returns the WorkRequest.
+     */ //: WorkRequest
     fun schedulePeriodicSync(context: Context) {
         val constraints = Constraints.Builder()
-            .setRequiredNetworkType(NetworkType.CONNECTED)   // Sync only when online
-            .setRequiresBatteryNotLow(true)                  // Avoid low-battery sync
-            .setRequiresCharging(false)                      // Sync even if not charging
+            .setRequiredNetworkType(NetworkType.CONNECTED)
+            .setRequiresBatteryNotLow(true)
+            .setRequiresCharging(false)
             .build()
 
         val periodicSyncRequest = PeriodicWorkRequestBuilder<SyncWorker>(
-            6, TimeUnit.HOURS                                // ⏱️ Repeat every 6 hours
+            15, TimeUnit.MINUTES
         )
             .setConstraints(constraints)
-            .setBackoffCriteria(                             // ✅ Retry on failure
+            .setBackoffCriteria(
                 BackoffPolicy.EXPONENTIAL,
                 30, TimeUnit.SECONDS
             )
-            .addTag("PeriodicSync")                          // 🔥 Unique tag for periodic sync
+            .addTag("PeriodicSync")
             .build()
 
-        WorkManager.getInstance(context)
-            .enqueueUniquePeriodicWork(                      // ✅ Prevent duplicate periodic syncs
-                "PeriodicSync",
-                ExistingPeriodicWorkPolicy.KEEP,
-                periodicSyncRequest
-            )
+        WorkManager.getInstance(context).enqueueUniquePeriodicWork(
+            "PeriodicSync",
+            ExistingPeriodicWorkPolicy.KEEP,
+            periodicSyncRequest
+        )
+        Log.d("ThreeGenSync", "🔥 From WorkManagerHelper Periodic sync scheduled successfully")
+
+        // ✅ Return the WorkRequest for observation
+        //return periodicSyncRequest
     }
 }

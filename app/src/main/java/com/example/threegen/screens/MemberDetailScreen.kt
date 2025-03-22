@@ -123,6 +123,7 @@ fun MemberDetailScreen(memberId: String, navController: NavHostController, viewM
                                             }
                                             viewModel.clearEditableSpouse() // Clear parent details if parent changed od add
                                             viewModel.clearEditableParent() // Clear parent details if spouse changed od add
+                                            WorkManagerHelper.scheduleImmediateSync(context)
                                         },
                                         modifier = Modifier.weight(1f)
                                     ) { Text(text = "Save") }
