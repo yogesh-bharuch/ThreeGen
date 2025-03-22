@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import androidx.work.*
 import com.example.threegen.data.ThreeGenViewModel
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
@@ -18,11 +19,8 @@ import java.util.concurrent.TimeUnit
 class SyncWorker(
     context: Context,
     params: WorkerParameters
-) : CoroutineWorker(context, params) {  // ✅ Use CoroutineWorker for better coroutine handling
+) : CoroutineWorker(context, params) {
 
-    /**
-     * Perform the background sync operation.
-     */
     override suspend fun doWork(): Result {
         val viewModel = ThreeGenViewModel.getInstance(applicationContext)
 
@@ -30,31 +28,26 @@ class SyncWorker(
         Log.d("ThreeGenSync", "🔥 From SyncWorker Sync started at: $syncTime")
 
         return try {
-            var syncResult = "From SyncWorker: No changes synced"
+            val syncResult = CompletableDeferred<String>()
 
-            // ✅ Use coroutine for proper async handling
+            // ✅ Run sync in IO Dispatcher
             withContext(Dispatchers.IO) {
                 viewModel.syncLocalDataToFirestore { message ->
-                    syncResult = message
                     Log.d("ThreeGenSync", "🔥 From SyncWorker Sync completed: $message")
+                    syncResult.complete(message)  // 🔥 Complete with the result message
                 }
             }
-            // ✅ Log the success result
-            Log.d("ThreeGenSync", "🔥 From SyncWorkerSync success: $syncResult")
 
-            // ✅ Return success with the sync result
-            Result.success(
-                workDataOf("SYNC_RESULT" to syncResult)
-            )
-            // ✅ Return success with sync result data
-            //val outputData = Data.Builder()
-            //    .putString("SYNC_RESULT", syncResult)
-            //    .build()
+            // ✅ Wait for the sync result before proceeding
+            val resultMessage = syncResult.await()
 
-            //Result.success(outputData)
+            Log.d("ThreeGenSync", "🔥 From SyncWorker Sync success: $resultMessage")
+
+            // ✅ Return success with the correct result message
+            Result.success(workDataOf("SYNC_RESULT" to resultMessage))
 
         } catch (e: Exception) {
-            Log.e("ThreeGenSync", "🔥 From SyncWorker Sync failed: ${e.localizedMessage}", e)  // ✅ Log errors properly
+            Log.e("ThreeGenSync", "🔥 From SyncWorker Sync failed: ${e.localizedMessage}", e)
             Result.retry()
         }
     }
@@ -69,20 +62,20 @@ class SyncWorker(
             val workManager = WorkManager.getInstance(context)
 
             val constraints = Constraints.Builder()
-                .setRequiredNetworkType(NetworkType.CONNECTED)  // ✅ Trigger only when network is available
+                .setRequiredNetworkType(NetworkType.CONNECTED)
                 .setRequiresBatteryNotLow(true)
                 .build()
 
             val periodicSyncRequest = PeriodicWorkRequestBuilder<SyncWorker>(
-                15, TimeUnit.MINUTES  // ✅ Sync every 15 minutes
+                15, TimeUnit.MINUTES
             )
                 .setConstraints(constraints)
-                .addTag(SYNC_WORK_TAG)  // ✅ Tag to identify the job
+                .addTag(SYNC_WORK_TAG)
                 .build()
 
             workManager.enqueueUniquePeriodicWork(
                 SYNC_WORK_TAG,
-                ExistingPeriodicWorkPolicy.KEEP,  // ✅ Prevent duplicate jobs
+                ExistingPeriodicWorkPolicy.KEEP,
                 periodicSyncRequest
             )
 
