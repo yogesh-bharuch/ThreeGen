@@ -253,7 +253,6 @@ class ThreeGenViewModel(
     }
 
     // ✅  Method to sync local data to Firestore---------------------------------------------------------------------------------------------------------------
-    //  with a callback for the result message
     private val _syncMessage = MutableStateFlow("")
     val syncMessage: StateFlow<String> = _syncMessage
 
@@ -272,10 +271,12 @@ class ThreeGenViewModel(
         // Launch the coroutine using viewModelScope (if inside ViewModel)
         viewModelScope.launch {
             try {
-                // Fetch all members mark for deleted members will not fetch
+                // ✅ Fetch all members mark for deleted members will not fetch
                 val allMembers = withContext(Dispatchers.IO) {
                     repository.getAllMembers()
                 }
+
+                // ✅ Fetch soft-deleted members
                 val deletedMembers = withContext(Dispatchers.IO) {
                     repository.getMarkAsDeletedMembers()
                 }
@@ -292,30 +293,30 @@ class ThreeGenViewModel(
                 }
 
                 // ✅ Delete members marked as deleted
-                if (deletedMembers.isNotEmpty()) {
-                    val deleteTasks = deletedMembers.map { member ->
+                val deleteTasks = if (deletedMembers.isNotEmpty()) {
+                    deletedMembers.map { member ->
                         async { deleteFirestoreMember(member, messages) }
                     }
-                    deleteTasks.awaitAll()
-                }
+                } else { emptyList() }
 
                 // ✅ Remove references as parent or spouse for deleted members from firestore, local database refrential intigrity takes care
-                if (deletedMembers.isNotEmpty()) {
-                    val cleanUpTasks = deletedMembers.map { member ->
+                val cleanUpTasks = if (deletedMembers.isNotEmpty()) {
+                    deletedMembers.map { member ->
                         async { removeReferencesToDeletedMember(member.id, messages) }
                     }
-                    cleanUpTasks.awaitAll()
-                }
+                } else { emptyList() }
 
-                // Concurrent Firestore updates
-                val tasks = unsyncedMembers.map { member ->
-                    async {
-                        updateFirestore(member, messages)
+                // ✅ Sync unsynced members to Firestore updated members
+                val syncTasks = if (unsyncedMembers.isNotEmpty()) {
+                    unsyncedMembers.map { member ->
+                        async { updateFirestore(member, messages) }
                     }
-                }
+                } else { emptyList() }
 
-                // Wait for all Firestore operations to finish
-                tasks.awaitAll()
+                // ✅ Wait for all operations to complete
+                deleteTasks.awaitAll()
+                cleanUpTasks.awaitAll()
+                syncTasks.awaitAll()
 
                 // Prepare final result message
                 val resultMessage = messages.joinToString("\n").ifEmpty { "No members to sync" }
@@ -395,37 +396,44 @@ class ThreeGenViewModel(
 
     private suspend fun removeReferencesToDeletedMember(deletedMemberId: String, messages: MutableList<String>) {
         try {
-            // ✅ Fetch all members referencing the deleted member
-            val referencingMembers = repository.getMembersReferencing(deletedMemberId)
+            Log.d("FirestoreViewModel", "🔥 Removing references to deleted member ID: $deletedMemberId")
 
-            if (referencingMembers.isNotEmpty()) {
-                referencingMembers.forEach { member ->
-                    // ✅ Remove spouse or parent reference
-                    val updatedMember = member.copy(
-                        spouseID = if (member.spouseID == deletedMemberId) null else member.spouseID,
-                        parentID = if (member.parentID == deletedMemberId) null else member.parentID
-                    )
+            val batch = firestore.batch()
 
-                    // ✅ Update Firestore with the cleaned-up member
-                    firestore.collection("ThreeGenMembers")
-                        .document(updatedMember.id)
-                        .set(updatedMember)
-                        .await()
+            // ✅ Find members referencing the deleted member
+            val query = firestore.collection("ThreeGenMembers")
+                .whereEqualTo("parentID", deletedMemberId)
+                .get()
+                .await()
 
-                    /*// ✅ Update local Room with cleaned references
-                    withContext(Dispatchers.IO) {
-                        repository.updateThreeGen(updatedMember)
-                    }*/
-
-                    messages.add("✅ Removed references to deleted member: ${deletedMemberId} from ${updatedMember.firstName}")
-                }
+            query.documents.forEach { doc ->
+                batch.update(doc.reference, "parentID", null)
+                Log.d("FirestoreViewModel", "✅ Cleared parentID reference for: ${doc.id}")
+                messages.add("✅ Removed parent reference for: ${doc.id}")
             }
+
+            val spouseQuery = firestore.collection("ThreeGenMembers")
+                .whereEqualTo("spouseID", deletedMemberId)
+                .get()
+                .await()
+
+            spouseQuery.documents.forEach { doc ->
+                batch.update(doc.reference, "spouseID", null)
+                Log.d("FirestoreViewModel", "✅ Cleared spouseID reference for: ${doc.id}")
+                messages.add("✅ Removed spouse reference for: ${doc.id}")
+            }
+
+            // ✅ Commit all batch updates
+            batch.commit().await()
+
+            Log.d("FirestoreViewModel", "✅ References removed successfully for deleted member: $deletedMemberId")
+            messages.add("✅ References removed for member: $deletedMemberId")
 
         } catch (e: Exception) {
             Log.e("FirestoreViewModel", "❌ Error removing references: ${e.message}", e)
-            messages.add("❌ Failed to remove references for deleted member: ${deletedMemberId} - ${e.localizedMessage}")
+            messages.add("❌ Failed to remove references for: $deletedMemberId - Error: ${e.localizedMessage}")
         }
     }
-
+    // completed Method to sync local data to Firestore---------------------------------------------------------------------------------------------------------------
 }
 
