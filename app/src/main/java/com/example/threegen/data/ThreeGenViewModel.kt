@@ -269,37 +269,47 @@ class ThreeGenViewModel(
 
         val messages = mutableListOf<String>()
 
-        // ✅ Use runBlocking to wait for all updates before triggering the callback
-        runBlocking {
-            val allMembers = repository.getAllMembers()
-
-            // ✅ Filter only unsynced members
-            val unsyncedMembers = allMembers.filter { it.syncStatus != SyncStatus.SYNCED }
-
-            if (unsyncedMembers.isEmpty()) {
-                val noSyncMessage = "No members to sync"
-                Log.d("FirestoreViewModel", "🔥 $noSyncMessage")
-                callback(noSyncMessage)
-                return@runBlocking
-            }
-
-            // ✅ Concurrent Firestore updates
-            val tasks = unsyncedMembers.map { member ->
-                async {
-                    updateFirestore(member, messages)
+        // Launch the coroutine using viewModelScope (if inside ViewModel)
+        viewModelScope.launch {
+            try {
+                // Fetch all members
+                val allMembers = withContext(Dispatchers.IO) {
+                    repository.getAllMembers()
                 }
+
+                // Filter only unsynced members
+                val unsyncedMembers = allMembers.filter { it.syncStatus != SyncStatus.SYNCED }
+
+                if (unsyncedMembers.isEmpty()) {
+                    val noSyncMessage = "No members to sync"
+                    Log.d("FirestoreViewModel", "🔥 $noSyncMessage")
+                    callback(noSyncMessage)
+                    return@launch
+                }
+
+                // Concurrent Firestore updates
+                val tasks = unsyncedMembers.map { member ->
+                    async {
+                        updateFirestore(member, messages) // This function is already `suspend`
+                    }
+                }
+
+                // Wait for all Firestore operations to finish
+                tasks.awaitAll()
+
+                // Prepare final result message
+                val resultMessage = messages.joinToString("\n").ifEmpty { "No members to sync" }
+                Log.d("FirestoreViewModel", "🔥 Final Sync Message: $resultMessage")
+
+                // Trigger the callback with the final result
+                callback(resultMessage)
+            } catch (e: Exception) {
+                Log.e("FirestoreViewModel", "❌ Error during sync operation: ${e.message}", e)
+                callback("❌ Error during sync: ${e.message}")
             }
-
-            // ✅ Wait for all Firestore operations to finish
-            tasks.awaitAll()
         }
-
-        val resultMessage = messages.joinToString("\n").ifEmpty { "No members to sync" }
-        Log.d("FirestoreViewModel", "🔥 Final Sync Message: $resultMessage")
-
-        // ✅ Trigger the callback with the final result
-        callback(resultMessage)
     }
+
 
     private suspend fun updateFirestore(threeGen: ThreeGen, messages: MutableList<String>) {
         Log.d("FirestoreViewModel", "🔥 Updating member in Firestore: ${threeGen.firstName}")
