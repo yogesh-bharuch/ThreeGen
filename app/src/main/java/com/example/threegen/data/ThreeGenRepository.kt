@@ -3,6 +3,7 @@ package com.example.threegen.data
 import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.asLiveData
+import com.example.threegen.util.WorkManagerHelper
 import kotlinx.coroutines.flow.Flow
 
 class ThreeGenRepository(private val threeGenDao: ThreeGenDao) {
@@ -31,12 +32,15 @@ class ThreeGenRepository(private val threeGenDao: ThreeGenDao) {
     /**
      * Marks a specific member as deleted in the database.
      */
-    suspend fun deleteThreeGen(member: ThreeGen) {
+    suspend fun markAsdeletedThreeGen(member: ThreeGen) {
         threeGenDao.markAsDeleted(member.id)
         // after delete in firestore delete logic to be developed
+        //WorkManagerHelper.scheduleImmediateSync(context)
+    //threeGenDao.deleteThreeGen(member.id)
+    }
+
+    suspend fun deleteThreeGen(member: ThreeGen) {
         threeGenDao.deleteThreeGen(member.id)
-
-
     }
 
     /**
@@ -52,6 +56,11 @@ class ThreeGenRepository(private val threeGenDao: ThreeGenDao) {
     suspend fun getMemberByIdSync(id: String): ThreeGen? {
         return threeGenDao.getMemberByIdSync(id)
     }
+
+    suspend fun getMarkedAsDeletedMemberByIdSync(id: String): ThreeGen? {
+        return threeGenDao.getMarkedAsDeletedMemberByIdSync(id)
+    }
+
 
     /**
      * Retrieves the count of a shortName to ensure uniqueness.
@@ -95,6 +104,16 @@ class ThreeGenRepository(private val threeGenDao: ThreeGenDao) {
         return threeGenDao.getAllMembers()
     }
 
+    /**
+     * Fetch all members.
+     */
+    suspend fun getMarkAsDeletedMembers(): List<ThreeGen> {
+        return threeGenDao.getMarkAsDeletedMembers()
+    }
+
+    suspend fun getMembersReferencing(memberId: String): List<ThreeGen> {
+        return threeGenDao.getMembersReferencing(memberId)
+    }
     /**
      * Fetch members matching search query.
      */

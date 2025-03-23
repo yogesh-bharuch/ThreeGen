@@ -221,11 +221,11 @@ class ThreeGenViewModel(
     }
 
     // ✅ Marks a member as deleted
-    fun deleteMember(memberId: String) {
+    fun markAsDeletedMember(memberId: String) {
         viewModelScope.launch(Dispatchers.IO) {
             val member = repository.getMemberByIdSync(memberId)
             if (member != null) {
-                repository.deleteThreeGen(member)
+                repository.markAsdeletedThreeGen(member)
                 fetchMembers() // ✅ Refresh list after deleting a member
             } else {
                 Log.e("ThreeGenViewModel", "Member not found: $memberId")
@@ -272,19 +272,37 @@ class ThreeGenViewModel(
         // Launch the coroutine using viewModelScope (if inside ViewModel)
         viewModelScope.launch {
             try {
-                // Fetch all members
+                // Fetch all members mark for deleted members will not fetch
                 val allMembers = withContext(Dispatchers.IO) {
                     repository.getAllMembers()
                 }
+                val deletedMembers = withContext(Dispatchers.IO) {
+                    repository.getMarkAsDeletedMembers()
+                }
 
-                // Filter only unsynced members
+                // ✅ Deleted members marked as deleted
+                if (deletedMembers.isNotEmpty()) {
+                    val deleteTasks = deletedMembers.map { member ->
+                        async { deleteFirestoreMember(member, messages) }
+                    }
+                    deleteTasks.awaitAll()
+                }
+
+                // ✅ Filter only unsynced members
                 val unsyncedMembers = allMembers.filter { it.syncStatus != SyncStatus.SYNCED }
-
                 if (unsyncedMembers.isEmpty()) {
                     val noSyncMessage = "No members to sync"
                     Log.d("FirestoreViewModel", "🔥 $noSyncMessage")
                     callback(noSyncMessage)
                     return@launch
+                }
+
+                // ✅ Remove references to deleted members
+                if (deletedMembers.isNotEmpty()) {
+                    val cleanUpTasks = deletedMembers.map { member ->
+                        async { removeReferencesToDeletedMember(member.id, messages) }
+                    }
+                    cleanUpTasks.awaitAll()
                 }
 
                 // Concurrent Firestore updates
@@ -309,7 +327,6 @@ class ThreeGenViewModel(
             }
         }
     }
-
 
     private suspend fun updateFirestore(threeGen: ThreeGen, messages: MutableList<String>) {
         Log.d("FirestoreViewModel", "🔥 Updating member in Firestore: ${threeGen.firstName}")
@@ -352,19 +369,61 @@ class ThreeGenViewModel(
         }
     }
 
+    private suspend fun deleteFirestoreMember(member: ThreeGen, messages: MutableList<String>) {
+        try {
+            // ✅ Delete the member document in Firestore
+            firestore.collection("ThreeGenMembers")
+                .document(member.id)
+                .delete()
+                .await()
 
-    //------------------------------------------------------------------------------------------------------------------
+            Log.d("FirestoreViewModel", "🔥 Deleted Firestore Member: ${member.firstName}")
+            messages.add("🔥 Deleted in Firestore: ${member.firstName} ${member.lastName}")
 
-    // Method to sync deletions to Firestore
-    /*
-    fun syncDeletionsToFirestore() {
-        viewModelScope.launch(Dispatchers.IO) {
-            val deletedMembers = repository.getDeletedMembers()
-            deletedMembers.forEach { member ->
-                updateFirestore(member)
+            // ✅ Remove the member from local Room database markedasdeleted
+            withContext(Dispatchers.IO) {
+                repository.deleteThreeGen(member)
             }
+
+        } catch (e: Exception) {
+            Log.e("FirestoreViewModel", "❌ Error deleting Firestore member: ${e.message}", e)
+            messages.add("❌ Failed to delete: ${member.firstName} - ${e.localizedMessage}")
         }
-    }*/
+    }
+
+    private suspend fun removeReferencesToDeletedMember(deletedMemberId: String, messages: MutableList<String>) {
+        try {
+            // ✅ Fetch all members referencing the deleted member
+            val referencingMembers = repository.getMembersReferencing(deletedMemberId)
+
+            if (referencingMembers.isNotEmpty()) {
+                referencingMembers.forEach { member ->
+                    // ✅ Remove spouse or parent reference
+                    val updatedMember = member.copy(
+                        spouseID = if (member.spouseID == deletedMemberId) null else member.spouseID,
+                        parentID = if (member.parentID == deletedMemberId) null else member.parentID
+                    )
+
+                    // ✅ Update Firestore with the cleaned-up member
+                    firestore.collection("ThreeGenMembers")
+                        .document(updatedMember.id)
+                        .set(updatedMember)
+                        .await()
+
+                    /*// ✅ Update local Room with cleaned references
+                    withContext(Dispatchers.IO) {
+                        repository.updateThreeGen(updatedMember)
+                    }*/
+
+                    messages.add("✅ Removed references to deleted member: ${deletedMemberId} from ${updatedMember.firstName}")
+                }
+            }
+
+        } catch (e: Exception) {
+            Log.e("FirestoreViewModel", "❌ Error removing references: ${e.message}", e)
+            messages.add("❌ Failed to remove references for deleted member: ${deletedMemberId} - ${e.localizedMessage}")
+        }
+    }
 
 }
 

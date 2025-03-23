@@ -55,7 +55,7 @@ fun MemberDetailScreen(memberId: String, navController: NavHostController, viewM
         //Log.d("MemberDetailScreen", "Calling fetchMemberDetails for ID from launched effect : $memberState")
         viewModel.fetchMemberDetails(memberId)
     }
-    Column(modifier = Modifier.fillMaxSize().padding(top = 32.dp)) {
+    Column(modifier = Modifier.fillMaxSize().padding(top = 40.dp).padding(bottom = 40.dp)) {
         CustomTopBar(title = "Member Details", navController = navController, onHomeClick = { navController.navigate(Home) })
         Box(modifier = Modifier.fillMaxSize().padding(1.dp)) {
             when (val state = memberState)
@@ -430,10 +430,12 @@ fun DeleteButton(member: ThreeGen, viewModel: ThreeGenViewModel, navController: 
             title = { Text("Confirm Delete") },
             confirmButton = {
                 Button(onClick = {
-                    viewModel.deleteMember(member.id)
+                    viewModel.markAsDeletedMember(member.id)
                     navController.popBackStack()
                     showDialog = false
-                    Toast.makeText(context, "Member deleted", Toast.LENGTH_SHORT).show()
+                    SnackbarManager.showMessage("Successfully marked as deleted ")
+                    WorkManagerHelper.scheduleImmediateSync(context)
+                    //Toast.makeText(context, "Member deleted", Toast.LENGTH_SHORT).show()
                 }) { Text("Yes, Delete") }
             },
             dismissButton = { Button(onClick = { showDialog = false }) { Text("Cancel") } }

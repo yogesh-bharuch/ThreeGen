@@ -37,15 +37,18 @@ interface ThreeGenDao {
     /**
      * Marks a specific member as deleted.
      */
-    @Query("UPDATE three_gen_table SET deleted = 1 WHERE id = :threeGenId")
+    @Query("UPDATE three_gen_table SET deleted = 1, syncStatus = 'UPDATED' WHERE id = :threeGenId")
     suspend fun markAsDeleted(threeGenId: String)
 
     /**
-     * Marks a specific member as deleted.
+     * delete member by id.
      */
     @Query("DELETE FROM three_gen_table WHERE id = :threeGenId")
     suspend fun deleteThreeGen(threeGenId: String)
 
+    // used in firestore update logic
+    @Query("SELECT * FROM three_gen_table WHERE parentID = :memberId OR spouseID = :memberId")
+    suspend fun getMembersReferencing(memberId: String): List<ThreeGen>
 
     /**
      * Retrieves a **specific member** by their ID as Flow.
@@ -60,6 +63,9 @@ interface ThreeGenDao {
      */
     @Query("SELECT * FROM three_gen_table WHERE id = :id AND deleted = 0")
     suspend fun getMemberByIdSync(id: String): ThreeGen?
+
+    @Query("SELECT * FROM three_gen_table WHERE id = :id")
+    suspend fun getMarkedAsDeletedMemberByIdSync(id: String): ThreeGen?
 
     /**
      * Retrieves the count of members with a given `shortName`.
@@ -120,6 +126,10 @@ interface ThreeGenDao {
 
     @Query("SELECT * FROM three_gen_table WHERE deleted = 0 ORDER BY createdAt DESC")
     suspend fun getAllMembers(): List<ThreeGen>
+
+
+    @Query("SELECT * FROM three_gen_table WHERE deleted = 1")
+    suspend fun getMarkAsDeletedMembers(): List<ThreeGen>
 
 
     @Query("SELECT * FROM three_gen_table WHERE shortName LIKE '%' || :query || '%' AND deleted = 0")
