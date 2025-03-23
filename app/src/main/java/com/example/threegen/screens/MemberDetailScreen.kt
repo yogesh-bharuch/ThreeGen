@@ -74,9 +74,7 @@ fun MemberDetailScreen(memberId: String, navController: NavHostController, viewM
                     val editableParent = rememberSaveable { mutableStateOf(memberParent) }
                     val editableSpouse = rememberSaveable { mutableStateOf(memberSpouse) } // Added for spouse detail
 
-                    //Box(modifier = Modifier.fillMaxSize().padding(8.dp)) {
-                        LazyColumn(
-                            modifier = Modifier.fillMaxSize().padding(PaddingValues(top = 1.dp, bottom = 1.dp))
+                        LazyColumn(modifier = Modifier.fillMaxSize().padding(PaddingValues(top = 1.dp, bottom = 1.dp))
                         ) {
                             //item { PageHeader() }
                             item {
@@ -155,7 +153,6 @@ fun MemberDetailScreen(memberId: String, navController: NavHostController, viewM
                         }
                         // ✅ Image Zoom Overlay
                         zoomedImageUri?.let { ImageOverlay(it) { zoomedImageUri = null } }
-                    //}
                 }
             } // when block in member detail screen
         }
