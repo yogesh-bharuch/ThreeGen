@@ -47,7 +47,7 @@ fun HomeScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            NavigationButton("Add New Member") { navController.navigate(AddMember) }
+            //NavigationButton("Add New Member") { navController.navigate(AddMember) }
             NavigationButton("View All Members") { navController.navigate(ListScreen) }
             NavigationButton("Go To All Members Family Tree") { navController.navigate(MemberTree) }
             NavigationButton("Go To Unused Members") { navController.navigate(UnusedMembers) }
