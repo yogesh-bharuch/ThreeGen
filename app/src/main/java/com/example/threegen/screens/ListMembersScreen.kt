@@ -12,8 +12,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.AccountTree
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Groups
+import androidx.compose.material.icons.filled.Groups2
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
@@ -29,6 +32,7 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import coil.compose.rememberAsyncImagePainter
 import com.example.threegen.MemberDetail
+import com.example.threegen.MemberFamilyTree
 import com.example.threegen.data.ThreeGen
 import com.example.threegen.data.ThreeGenViewModel
 import com.example.threegen.util.MemberState
@@ -114,7 +118,8 @@ fun ListMembersScreen(
                                         navController.navigate(MemberDetail(id = member.id))
                                         viewModel.updateSearchQuery("")
                                     },
-                                    onImageClick = { selectedImageUri = it }
+                                    onImageClick = { selectedImageUri = it },
+                                    onTreeClick = { navController.navigate(MemberFamilyTree(member.id)) }
                                 )
                                 HorizontalDivider()
                             }
@@ -136,7 +141,8 @@ fun ListMembersScreen(
 fun MemberListItem(
     member: ThreeGen,
     onItemClick: () -> Unit,
-    onImageClick: (String) -> Unit
+    onImageClick: (String) -> Unit,
+    onTreeClick: (String) -> Unit
 ) {
     Log.d("MemberDetails", "Rendering item: ${member.id}, Image URI: ${member.imageUri}")
 
@@ -147,6 +153,7 @@ fun MemberListItem(
             .padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        // display image
         if (!member.imageUri.isNullOrEmpty()) {
             Image(
                 painter = rememberAsyncImagePainter(member.imageUri),
@@ -158,16 +165,11 @@ fun MemberListItem(
                     .clickable { onImageClick(member.imageUri!!) }
             )
         } else {
-            Icon(
-                imageVector = Icons.Default.Person,
-                contentDescription = "No Profile Image",
-                modifier = Modifier.size(56.dp).clip(CircleShape),
-                tint = Color.Gray
-            )
+            Icon(imageVector = Icons.Default.Person, contentDescription = "No Profile Image", modifier = Modifier
+                    .size(56.dp)
+                    .clip(CircleShape), tint = Color.Gray)
         }
-
         Spacer(modifier = Modifier.width(12.dp))
-
         Column {
             Text(
                 text = "${member.firstName} ${member.middleName} ${member.lastName}",
@@ -176,7 +178,21 @@ fun MemberListItem(
             )
             Text(text = "Town: ${member.town}", fontSize = 12.sp)
             Text(text = "Short Name: ${member.shortName}", fontSize = 12.sp)
+        } // displays fullname, town, shortname
+
+        // ✅ Spacer to push the tree icon to the right
+        Spacer(modifier = Modifier.weight(0.1f))
+
+        // ✅ Tree Icon with Light Gray color on the right side
+        IconButton(onClick = { onTreeClick(member.id) }) {
+            Icon(
+                imageVector = Icons.Default.Groups2,  // 🔥 Alternative M3 Icon
+                contentDescription = "View Family Tree",
+                modifier = Modifier.size(48.dp),    // ✅ Double size
+                tint = Color.LightGray  // ✅ Light Gray color
+            )
         }
+
     }
 }
 
