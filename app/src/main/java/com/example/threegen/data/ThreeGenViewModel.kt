@@ -20,6 +20,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
+import java.util.UUID
 
 class ThreeGenViewModel(
     private val dao: ThreeGenDao,
@@ -164,14 +165,17 @@ class ThreeGenViewModel(
     //-----------------------------------
 
     // ✅ Adds a new member to the database
-    fun addThreeGen(firstName: String, middleName: String, lastName: String, town: String, imageUri: String?, parentID: String?, spouseID: String?, childNumber: Int? = 1, comment: String? = null, onResult: (Int) -> Unit) {
+    fun addThreeGen(firstName: String, middleName: String, lastName: String, town: String, imageUri: String?, parentID: String?, spouseID: String?, childNumber: Int? = 1, comment: String? = null, onResult: (String, Int) -> Unit) {
         if (firstName.isBlank() || middleName.isBlank() || lastName.isBlank() || town.isBlank()) {
             Log.e("ThreeGenViewModel", "Validation failed: All name fields and town are required")
-            onResult(0) // Signal failure
+            onResult("No members added",0) // Signal failure
             return
         }
+        var spouseMessage = "No spouse to update"      // Declare outside coroutine
+        var spouseUpdatedRows = 0
 
         viewModelScope.launch(Dispatchers.IO) {
+            val newUUID = UUID.randomUUID().toString()
             val formattedFirstName = formatName(firstName)
             val formattedMiddleName = formatName(middleName)
             val formattedLastName = formatName(lastName)
@@ -181,11 +185,34 @@ class ThreeGenViewModel(
             val currentUserId = auth.currentUser?.uid
 
             // ✅ Create a new ThreeGen object to insert in local database with formated values and createdby field with current user
-            val newMember = ThreeGen(firstName = formattedFirstName, middleName = formattedMiddleName, lastName = formattedLastName, town = formattedTown, shortName = uniqueShortName, imageUri = imageUri, parentID = parentID, spouseID = spouseID, createdAt = System.currentTimeMillis(), syncStatus = SyncStatus.NOT_SYNCED, childNumber = childNumber, comment = comment, createdBy = currentUserId)
+            val newMember = ThreeGen(id = newUUID, firstName = formattedFirstName, middleName = formattedMiddleName, lastName = formattedLastName, town = formattedTown, shortName = uniqueShortName, imageUri = imageUri, parentID = parentID, spouseID = spouseID, createdAt = System.currentTimeMillis(), syncStatus = SyncStatus.NOT_SYNCED, childNumber = childNumber, comment = comment, createdBy = currentUserId)
             val insertedRows = repository.addThreeGen(newMember)
 
+            // ✅ If spouseID exists, update the spouse's record with the new member's ID
+            if (!spouseID.isNullOrBlank()) {
+                val spouse = repository.getMemberByIdSync(spouseID)
+                if (spouse != null) {
+                    val updatedSpouse = spouse.copy(
+                        spouseID = newMember.id,           // ✅ Link new member as the spouse
+                        syncStatus = SyncStatus.UPDATED    // ✅ Mark spouse for Firestore sync
+                    )
+                    spouseUpdatedRows = repository.updateThreeGen(updatedSpouse)
+                    // ✅ Include spouse update message
+                    spouseMessage = if (spouseUpdatedRows > 0) {
+                        "✅ Spouse updated: ${spouse.firstName} ${spouse.lastName}"
+                    } else { "❌ No Spouse or Spouse update failed" }
+
+                    Log.d("ThreeGenViewModel", spouseMessage)
+                }
+            }
+            // ✅ Prepare final result message
+            val finalMessage = if (insertedRows > 0) {
+                "✅ Member added: $firstName $lastName\n$spouseMessage"
+            } else {
+                "❌ Failed to add member"
+            }
             withContext(Dispatchers.Main) {
-                onResult(insertedRows) // Notify the number of rows inserted
+                onResult(finalMessage, insertedRows) // Notify the number of rows inserted
             }
         }
     }
@@ -212,10 +239,24 @@ class ThreeGenViewModel(
             val uniqueShortName = generateUniqueShortName(formattedFirstName, formattedMiddleName, formattedLastName, formattedTown)
             val updatedMember = member.copy(firstName = formattedFirstName, middleName = formattedMiddleName, lastName = formattedLastName, town = formattedTown, parentID = parentID, spouseID = spouseID, shortName = uniqueShortName, imageUri = imageUri, childNumber = childNumber, comment = comment, syncStatus = SyncStatus.UPDATED)
             val updatedRows = repository.updateThreeGen(updatedMember)
-            //onResult(updatedRows) // Return the number of updated rows
+            // ✅ If member has a spouse, update the spouse's `spouseID`
+            var spouseUpdatedRows = 0
+            if (!spouseID.isNullOrBlank()) {
+                val spouse = repository.getMemberByIdSync(spouseID)
+                spouse?.let {
+                    // Update the spouse's `spouseID` to point back to this member
+                    val updatedSpouse = it.copy(
+                        spouseID = memberId,               // Point back to the current member
+                        syncStatus = SyncStatus.UPDATED     // Mark the spouse as updated
+                    )
+                    spouseUpdatedRows = repository.updateThreeGen(updatedSpouse)
+                    Log.d("update member", "Spouse updated: ${updatedSpouse.firstName}")
+                }
+            }
+
             // ✅ Switch back to the main thread to show the Toast
             withContext(Dispatchers.Main) {
-                onResult(updatedRows)
+                onResult(updatedRows + spouseUpdatedRows)
             }
         }
     }

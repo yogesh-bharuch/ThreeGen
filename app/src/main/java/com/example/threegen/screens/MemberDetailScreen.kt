@@ -102,9 +102,9 @@ fun MemberDetailScreen(memberId: String, navController: NavHostController, viewM
                                     Button(
                                         onClick = {
                                             if (memberId == ""){
-                                                viewModel.addThreeGen(firstName = editableMember.value.firstName, middleName = editableMember.value.middleName ?: "", lastName = editableMember.value.lastName, town = editableMember.value.town, parentID = editableMember.value.parentID, spouseID = editableMember.value.spouseID, imageUri = editableMember.value.imageUri, childNumber = editableMember.value.childNumber, comment = editableMember.value.comment) { insertedRows ->
+                                                viewModel.addThreeGen(firstName = editableMember.value.firstName, middleName = editableMember.value.middleName ?: "", lastName = editableMember.value.lastName, town = editableMember.value.town, parentID = editableMember.value.parentID, spouseID = editableMember.value.spouseID, imageUri = editableMember.value.imageUri, childNumber = editableMember.value.childNumber, comment = editableMember.value.comment) { message, insertedRows ->
                                                     if (insertedRows > 0) {
-                                                        SnackbarManager.showMessage("Successfully inserted Row number: $insertedRows row(s)!")
+                                                        SnackbarManager.showMessage("Successfully inserted Row number: $insertedRows row(s)!\n$message")
                                                     } else {
                                                         SnackbarManager.showMessage("Insert failed. No rows were inserted.")
                                                     } // ✅ Snackbar Message
