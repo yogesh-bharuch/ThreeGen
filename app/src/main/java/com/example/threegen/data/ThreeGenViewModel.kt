@@ -372,9 +372,14 @@ class ThreeGenViewModel(
         }
     }
 
+    /**
+     * Syncs a `ThreeGen` member to Firestore, including all fields.
+     * Updates the local Room sync status and `updatedAt` timestamp upon successful Firestore sync.
+     */
     private suspend fun updateFirestore(threeGen: ThreeGen, messages: MutableList<String>) {
         Log.d("FirestoreViewModel", "🔥 Updating member in Firestore: ${threeGen.firstName}")
 
+        // ✅ Prepare data map with all fields
         val data = mapOf(
             "id" to threeGen.id,
             "firstName" to threeGen.firstName,
@@ -388,7 +393,12 @@ class ThreeGenViewModel(
             "createdAt" to threeGen.createdAt,
             "createdBy" to threeGen.createdBy,
             "parentID" to threeGen.parentID,
-            "spouseID" to threeGen.spouseID
+            "spouseID" to threeGen.spouseID,
+
+            // ✅ New fields
+            "isAlive" to threeGen.isAlive,              // New field: Alive status
+            //"deleted" to threeGen.deleted,              // New field: Soft delete flag
+            "updatedAt" to System.currentTimeMillis()   // New field: Sync timestamp
         )
 
         try {
@@ -401,9 +411,12 @@ class ThreeGenViewModel(
             Log.d("FirestoreViewModel", "🔥 Document successfully updated: ${threeGen.firstName}")
             messages.add("✅ Updated in Firestore: ${threeGen.firstName} ${threeGen.lastName}")
 
-            // ✅ Update local Room sync status
+            // ✅ Update local Room sync status and `updatedAt`
             withContext(Dispatchers.IO) {
-                val updatedMember = threeGen.copy(syncStatus = SyncStatus.SYNCED)
+                val updatedMember = threeGen.copy(
+                    syncStatus = SyncStatus.SYNCED,
+                    updatedAt = System.currentTimeMillis()  // 🔥 Update local timestamp
+                )
                 repository.updateThreeGen(updatedMember)
             }
 

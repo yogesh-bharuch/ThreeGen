@@ -1,9 +1,12 @@
 package com.example.threegen.data
 
+import android.content.Context
 import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.asLiveData
+import com.example.threegen.util.SyncPreferences
 import com.example.threegen.util.WorkManagerHelper
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.Flow
 
 class ThreeGenRepository(private val threeGenDao: ThreeGenDao) {
@@ -120,5 +123,28 @@ class ThreeGenRepository(private val threeGenDao: ThreeGenDao) {
     suspend fun searchMembers(query: String): List<ThreeGen> {
         return threeGenDao.searchMembers(query)
     }
+
+    //-----------Firebase -->  local sync start ----------
+    private val firestore = FirebaseFirestore.getInstance()
+
+    /**
+     * ✅ Retrieve the last sync timestamp
+     * @param context - Application context
+     * @return The last sync timestamp
+     */
+    suspend fun getLastSyncTimestamp(context: Context): Long {
+        return SyncPreferences.getLastSyncTimestamp(context)
+    }
+
+    /**
+     * ✅ Save the new last sync timestamp
+     * @param context - Application context
+     * @param timestamp - New timestamp to store
+     */
+    suspend fun setLastSyncTimestamp(context: Context, timestamp: Long) {
+        SyncPreferences.setLastSyncTimestamp(context, timestamp)
+    }
+    //-----------Firebase -->  local sync complete----------
+
 }
 

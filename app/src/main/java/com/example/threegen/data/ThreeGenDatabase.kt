@@ -1,4 +1,3 @@
-
 package com.example.threegen.data
 
 import android.content.Context
@@ -6,8 +5,15 @@ import androidx.room.*
 import androidx.sqlite.db.SupportSQLiteDatabase
 import androidx.room.migration.Migration
 
-@Database(entities = [ThreeGen::class], version = 1) // Start fresh from version 1
+/**
+ * Room Database class for the ThreeGen family tree application.
+ * - Contains a single entity: `ThreeGen`
+ * - Supports database versioning with migration logic.
+ */
+@Database(entities = [ThreeGen::class], version = 3, exportSchema = true)  // 🔥 Updated to version 3
 abstract class ThreeGenDatabase : RoomDatabase() {
+
+    // DAO to interact with ThreeGen table
     abstract fun getThreeGenDao(): ThreeGenDao
 
     companion object {
@@ -17,7 +23,8 @@ abstract class ThreeGenDatabase : RoomDatabase() {
         private var INSTANCE: ThreeGenDatabase? = null
 
         /**
-         * Provides an instance of the database, ensuring a single instance exists (Singleton Pattern).
+         * Provides a singleton instance of the database.
+         * Includes migration logic from versions 1 → 3.
          */
         fun getInstance(context: Context): ThreeGenDatabase {
             return INSTANCE ?: synchronized(this) {
@@ -26,10 +33,36 @@ abstract class ThreeGenDatabase : RoomDatabase() {
                     ThreeGenDatabase::class.java,
                     NAME
                 )
-                    .fallbackToDestructiveMigration() // Use this for development
+                    // ✅ Add migration strategies
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)  // Apply both migrations
+                    .fallbackToDestructiveMigration()             // Use for development
                     .build()
                 INSTANCE = instance
                 instance
+            }
+        }
+
+        /**
+         * Migration logic from version 1 → version 2:
+         * - Adds `isAlive` field with default value `1` (true).
+         * - Adds `createdBy` field as nullable TEXT.
+         */
+        private val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // ✅ Add new fields with proper default values
+                db.execSQL("ALTER TABLE three_gen_table ADD COLUMN isAlive INTEGER NOT NULL DEFAULT 1")
+                db.execSQL("ALTER TABLE three_gen_table ADD COLUMN createdBy TEXT")
+            }
+        }
+
+        /**
+         * Migration logic from version 2 → version 3:
+         * - Adds `updatedAt` field with default value `0` (timestamp).
+         */
+        private val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // ✅ Add `updatedAt` field with default value `0`
+                db.execSQL("ALTER TABLE three_gen_table ADD COLUMN updatedAt INTEGER NOT NULL DEFAULT 0")
             }
         }
     }
@@ -48,6 +81,7 @@ abstract class ThreeGenDatabase : RoomDatabase() {
 
 
 /*
+
 package com.example.threegen.data
 
 import android.content.Context
@@ -55,9 +89,7 @@ import androidx.room.*
 import androidx.sqlite.db.SupportSQLiteDatabase
 import androidx.room.migration.Migration
 
-
-
-@Database(entities = [ThreeGen::class], version = 2) // Increment version for new changes
+@Database(entities = [ThreeGen::class], version = 1) // Start fresh from version 1
 abstract class ThreeGenDatabase : RoomDatabase() {
     abstract fun getThreeGenDao(): ThreeGenDao
 
@@ -67,36 +99,4 @@ abstract class ThreeGenDatabase : RoomDatabase() {
         @Volatile
         private var INSTANCE: ThreeGenDatabase? = null
 
-        /**
-         * Provides an instance of the database, ensuring a single instance exists (Singleton Pattern).
-         * Uses Room.databaseBuilder for migration support.
-         */
-        fun getInstance(context: Context): ThreeGenDatabase {
-            return INSTANCE ?: synchronized(this) {
-                val instance = Room.databaseBuilder(
-                    context.applicationContext,
-                    ThreeGenDatabase::class.java,
-                    NAME
-                )
-                    .addMigrations(MIGRATION_1_2) // Add future migrations here
-                    .fallbackToDestructiveMigration() // WARNING: Use only for debugging, removes all data on failure
-                    .build()
-                INSTANCE = instance
-                instance
-            }
-        }
-
-        /**
-         * Migration from version 1 to version 2.
-         * Adds new fields `childNumber` and `comment` to the `ThreeGen` table.
-         */
-        private val MIGRATION_1_2 = object : Migration(1, 2) {
-            override fun migrate(db: SupportSQLiteDatabase) {
-                db.execSQL("ALTER TABLE three_gen ADD COLUMN childNumber INTEGER")
-                db.execSQL("ALTER TABLE three_gen ADD COLUMN comment TEXT")
-            }
-        }
-    }
-}
-
-*/
+        */
