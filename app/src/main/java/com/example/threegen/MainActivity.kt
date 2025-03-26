@@ -17,8 +17,6 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.rememberNavController
 import com.example.threegen.login.AuthViewModel
 import com.example.threegen.login.AuthViewModelFactory
-import com.example.threegen.data.NewThreeGenViewModel
-import com.example.threegen.data.NewThreeGenViewModelFactory
 import com.example.threegen.data.ThreeGenViewModel
 import com.example.threegen.data.ThreeGenViewModelFactory
 import com.example.threegen.ui.theme.ThreeGenTheme
@@ -40,7 +38,6 @@ class MainActivity : ComponentActivity() {
         val auth = com.google.firebase.auth.FirebaseAuth.getInstance()
 
         val viewModel: ThreeGenViewModel by viewModels { ThreeGenViewModelFactory(dao, firestore) }
-        val viewModelNew: NewThreeGenViewModel by viewModels { NewThreeGenViewModelFactory(dao, firestore) }
         val authViewModel: AuthViewModel by viewModels { AuthViewModelFactory(auth) }
 
         // ✅ Schedule periodic sync on network availability
@@ -78,13 +75,10 @@ class MainActivity : ComponentActivity() {
                 ) { innerPadding ->
 
                     AppNavigation(
-                        navController = navController,
                         viewModel = viewModel,
-                        viewModelNew = viewModelNew,
                         authViewModel = authViewModel,
-                        modifier = Modifier
-                            .padding(innerPadding)
-                            .padding(8.dp)
+                        modifier = Modifier.padding(innerPadding).padding(8.dp),
+                        navController = navController
                     )
                 }
             }
