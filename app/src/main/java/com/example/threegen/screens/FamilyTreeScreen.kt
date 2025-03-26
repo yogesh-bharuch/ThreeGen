@@ -42,7 +42,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -66,15 +65,16 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
+import com.example.threegen.Home
 import com.example.threegen.MemberFamilyTree
 import com.example.threegen.data.ThreeGen
 import com.example.threegen.data.ThreeGenViewModel
+import com.example.threegen.util.CustomTopBar
 import com.example.threegen.util.MemberState
 
 @Composable
 fun FamilyTreeScreen(
     modifier: Modifier = Modifier,
-    orphanMember: Boolean = false,
     navController: NavHostController,
     viewModel: ThreeGenViewModel = viewModel()
 ) {
@@ -98,56 +98,67 @@ fun FamilyTreeScreen(
     //Members who do not have a parent ID, but are explicitly listed in parentid column of members.
     val rootMembers =  members.filter { it.parentID == null && it.id in parentIds }
 
-/*    val rootMembers = if (orphanMember) {
-        //have no parent, no spouse, and are not referenced by other members as a parent or spouse.
-        members.filter { it.parentID == null && it.spouseID == null && it.id !in parentIds && it.id !in members.mapNotNull { member -> member.spouseID } }
-    } else {
-        //Members who do not have a parent ID, but are explicitly listed in parentid column of members.
-        members.filter { it.parentID == null && it.id in parentIds }
-    }*/
     // ✅ State variable to track the currently zoomed image URI.
     // When an image is clicked, this variable holds its URI to display it in a full-screen overlay.
     var zoomedImageUri by remember { mutableStateOf<String?>(null) }
-
-    Box(modifier = modifier.fillMaxSize().padding(4.dp)) {
-        when (val state = memberState) {
-            is MemberState.Loading -> { CircularProgressIndicator(modifier = Modifier.padding(16.dp)) }
-            is MemberState.Error -> { Text(text = "Error: ${state.message}", color = Color.Red, modifier = Modifier.padding(16.dp)) }
-            is MemberState.Empty -> { Text(text = "No members found", color = Color.Gray, modifier = Modifier.padding(16.dp)) }
-            is MemberState.Success -> { Text(text = "Its a individual member not a list", color = Color.Gray, modifier = Modifier.padding(16.dp)) }
-            is MemberState.SuccessList -> {
-                if (state.members.isEmpty()){
-                    Text(text = "No matching members found", color = Color.Gray, modifier = Modifier.padding(16.dp))
-                } else {
-                    LazyColumn(modifier = Modifier.fillMaxSize()) {
-                        item { Text(text = if (orphanMember) {
-                            "Family Tree of all Orphan Members"
-                        } else {
-                            "Family Tree of all Root Members"
-                        }, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 16.dp)) }
-                        items(rootMembers) { member ->
-                            FamilyTreeItem(navController = navController, member = member, members = members, onImageClick = { uri -> zoomedImageUri = uri })
+    Column(modifier = Modifier.fillMaxSize().padding(top = 40.dp).padding(bottom = 40.dp))
+    {
+        CustomTopBar(title = "Family Tree Root Members", navController = navController, onHomeClick = { navController.navigate(Home) })
+        Box(modifier = modifier.fillMaxSize().padding(4.dp))
+        {
+            when (val state = memberState) {
+                is MemberState.Loading -> {
+                    CircularProgressIndicator(modifier = Modifier.padding(16.dp))
+                }
+                is MemberState.Error -> {
+                    Text(
+                        text = "Error: ${state.message}",
+                        color = Color.Red,
+                        modifier = Modifier.padding(16.dp)
+                    )
+                }
+                is MemberState.Empty -> {
+                    Text(
+                        text = "No members found",
+                        color = Color.Gray,
+                        modifier = Modifier.padding(16.dp)
+                    )
+                }
+                is MemberState.Success -> {
+                    Text(
+                        text = "Its a individual member not a list",
+                        color = Color.Gray,
+                        modifier = Modifier.padding(16.dp)
+                    )
+                }
+                is MemberState.SuccessList -> {
+                    if (state.members.isEmpty()) {
+                        Text(text = "No matching members found", color = Color.Gray, modifier = Modifier.padding(16.dp))
+                    } else {
+                        LazyColumn(modifier = Modifier.fillMaxSize()) {
+                            items(rootMembers) { member ->
+                                FamilyTreeItem(navController = navController, member = member, members = members, onImageClick = { uri -> zoomedImageUri = uri })
+                            }
                         }
                     }
                 }
             }
-        }
-        zoomedImageUri?.let { uri ->
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.8f))
-                    .clickable { zoomedImageUri = null },
-                contentAlignment = Alignment.Center
-            ) {
-                AsyncImage(
-                    model = uri,
-                    contentDescription = "Zoomed Image",
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(4.dp)
-                )
-            }
+            // ✅ Image Zoom Overlay
+            zoomedImageUri?.let { uri ->
+                Box(
+                    modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.8f))
+                        .clickable { zoomedImageUri = null },
+                    contentAlignment = Alignment.Center
+                ) {
+                    AsyncImage(
+                        model = uri,
+                        contentDescription = "Zoomed Image",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(4.dp)
+                    )
+                }
+            } // display image in overlay
         }
     }
 }

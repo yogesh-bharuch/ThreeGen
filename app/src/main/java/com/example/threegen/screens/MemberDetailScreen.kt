@@ -55,11 +55,12 @@ fun MemberDetailScreen(memberId: String, navController: NavHostController, viewM
         //Log.d("MemberDetailScreen", "Calling fetchMemberDetails for ID from launched effect : $memberState")
         viewModel.fetchMemberDetails(memberId)
     }
-    Column(modifier = Modifier.fillMaxSize().padding(top = 40.dp).padding(bottom = 40.dp)) {
+    Column(modifier = Modifier.fillMaxSize().padding(top = 40.dp).padding(bottom = 40.dp))
+    {
         CustomTopBar(title = "Member Details", navController = navController, onHomeClick = { navController.navigate(Home) })
-        Box(modifier = Modifier.fillMaxSize().padding(1.dp)) {
-            when (val state = memberState)
-            {
+        Box(modifier = Modifier.fillMaxSize().padding(1.dp))
+        {
+            when (val state = memberState) {
                 is MemberState.Loading -> LoadingState()
                 is MemberState.Empty -> EmptyState() //SuccessList
                 is MemberState.Error -> ErrorState(state.message)

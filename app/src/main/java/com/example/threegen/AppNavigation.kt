@@ -1,6 +1,5 @@
 package com.example.threegen
 
-import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -11,7 +10,6 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.toRoute
 import com.example.threegen.data.NewThreeGenViewModel
-import com.example.threegen.data.ThreeGen
 import com.example.threegen.data.ThreeGenViewModel
 import com.example.threegen.login.AuthState
 import com.example.threegen.login.AuthViewModel
@@ -126,10 +124,9 @@ fun AppNavigation(
         // shares FamilyTreeScreen with Unused Orphan Members screen with orphanMember = false as different parameter
         composable<MemberTree> {
             FamilyTreeScreen(
-                orphanMember = false,
+                modifier = modifier,
                 navController = navController,
-                viewModel = viewModel,
-                modifier = modifier
+                viewModel = viewModel
             )
         }
         // Unused Orphan Members screen

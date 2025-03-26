@@ -31,10 +31,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import coil.compose.rememberAsyncImagePainter
+import com.example.threegen.Home
 import com.example.threegen.MemberDetail
 import com.example.threegen.MemberFamilyTree
 import com.example.threegen.data.ThreeGen
 import com.example.threegen.data.ThreeGenViewModel
+import com.example.threegen.util.CustomTopBar
 import com.example.threegen.util.MemberState
 import kotlinx.coroutines.FlowPreview
 
@@ -65,7 +67,7 @@ fun ListMembersScreen(
                 }
             },
             actions = {
-                IconButton(onClick = { /*navController.navigate("home")*/ }) {
+                IconButton(onClick = { navController.navigate(Home) }) {
                     Icon(Icons.Default.Home, contentDescription = "Home")
                 }
             }

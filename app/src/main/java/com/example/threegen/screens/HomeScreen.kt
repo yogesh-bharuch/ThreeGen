@@ -51,8 +51,8 @@ fun HomeScreen(
             NavigationButton("View All Members") { navController.navigate(ListScreen) }
             NavigationButton("Go To All Members Family Tree") { navController.navigate(MemberTree) }
             NavigationButton("Go To Unused Members") { navController.navigate(UnusedMembers) }
-
             // ✅ Manual Sync Button
+            /*
             Button(
                 onClick = {
                     // ✅ Trigger manual sync (no result callback needed)
@@ -63,6 +63,7 @@ fun HomeScreen(
             ) {
                 Text(text = "Sync Data")
             }
+            */
         }
     }
 }
