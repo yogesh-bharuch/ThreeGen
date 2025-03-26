@@ -178,6 +178,7 @@ fun MemberListItem(
             )
             Text(text = "Town: ${member.town}", fontSize = 12.sp)
             Text(text = "Short Name: ${member.shortName}", fontSize = 12.sp)
+            Text(text = "id: ${member.id}", fontSize = 9.sp)
         } // displays fullname, town, shortname
 
         // ✅ Spacer to push the tree icon to the right

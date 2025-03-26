@@ -95,18 +95,11 @@ fun FamilyTreeScreen(
     val parentIds = remember(members) { members.mapNotNull { it.parentID }.toSet() }
 
     // ✅ Filter and identify root members for the family tree.
-    // A root member is defined as a member whose parentID is null but still has children (its ID is present in parentIds).
-    /*val rootMembers = members.filter { it.parentID == null && it.id in parentIds }
-    val rootMembers2 = members.filter {
-        it.parentID == null && // No parent
-                it.spouseID == null && // No spouse
-                it.id !in parentIds && // Not used as a parent
-                it.id !in members.mapNotNull { member -> member.spouseID } // Not used as a spouse
-    }*/
-
     val rootMembers = if (orphanMember) {
+        //have no parent, no spouse, and are not referenced by other members as a parent or spouse.
         members.filter { it.parentID == null && it.spouseID == null && it.id !in parentIds && it.id !in members.mapNotNull { member -> member.spouseID } }
     } else {
+        //Members who do not have a parent ID, but are explicitly listed in parentid column of members.
         members.filter { it.parentID == null && it.id in parentIds }
     }
     // ✅ State variable to track the currently zoomed image URI.
@@ -124,7 +117,11 @@ fun FamilyTreeScreen(
                     Text(text = "No matching members found", color = Color.Gray, modifier = Modifier.padding(16.dp))
                 } else {
                     LazyColumn(modifier = Modifier.fillMaxSize()) {
-                        item { Text(text = "Family Tree of all Root Members", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 16.dp)) }
+                        item { Text(text = if (orphanMember) {
+                            "Family Tree of all Orphan Members"
+                        } else {
+                            "Family Tree of all Root Members"
+                        }, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 16.dp)) }
                         items(rootMembers) { member ->
                             FamilyTreeItem(navController = navController, member = member, members = members, onImageClick = { uri -> zoomedImageUri = uri })
                         }
@@ -181,11 +178,7 @@ fun FamilyTreeItem(navController: NavController, member: ThreeGen, members: List
                             .clickable { onImageClick(member.imageUri ?: "") }
                     )
                 } else {
-                    Icon(imageVector = Icons.Default.Person, contentDescription = "Default Person Icon", modifier = Modifier
-                        .size(48.dp)
-                        .clip(CircleShape)
-                        .padding(0.dp)
-                        .clickable { })
+                    Icon(imageVector = Icons.Default.Person, contentDescription = "Default Person Icon", modifier = Modifier.size(48.dp).clip(CircleShape).padding(0.dp).clickable { })
                 } // member image display
                 Spacer(modifier = Modifier.width(4.dp))
                 Column(modifier = Modifier.weight(1f))
@@ -195,7 +188,7 @@ fun FamilyTreeItem(navController: NavController, member: ThreeGen, members: List
                     Text("Town: ${member.town}")
                 } // member name and town display
             } // Member display Section
-            member.spouseID?.let { spouseId ->
+            member.spouseID?.let{ spouseId ->
                 members.find { it.id == spouseId }?.let { spouse ->
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier
                             .fillMaxWidth()
