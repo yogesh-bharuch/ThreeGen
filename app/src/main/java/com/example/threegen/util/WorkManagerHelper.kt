@@ -3,9 +3,15 @@ package com.example.threegen.util
 import android.content.Context
 import android.util.Log
 import androidx.lifecycle.LifecycleOwner
-import androidx.lifecycle.LiveData
-import androidx.work.*
-import java.util.UUID
+import androidx.work.BackoffPolicy
+import androidx.work.Constraints
+import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.ExistingWorkPolicy
+import androidx.work.NetworkType
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkInfo
+import androidx.work.WorkManager
 import java.util.concurrent.TimeUnit
 
 /**
@@ -46,7 +52,11 @@ object WorkManagerHelper {
     /**
      * ✅ Observes the sync result and logs it.
      */ //workId: UUID
-    fun observeSyncResult(context: Context, lifecycleOwner: LifecycleOwner, onResult: (String) -> Unit) {
+    fun observeSyncResult(
+        context: Context,
+        lifecycleOwner: LifecycleOwner,
+        onResult: (String) -> Unit
+    ) {
         val workManager = WorkManager.getInstance(context)
 
         // ✅ Get LiveData<WorkInfo?>
@@ -55,32 +65,36 @@ object WorkManagerHelper {
         //fun observeSyncResult(context: Context, lifecycleOwner: LifecycleOwner, onResult: (String) -> Unit) {
         //    val workManager = WorkManager.getInstance(context)
 
-            // ✅ Observe manual sync results
-            workManager.getWorkInfosByTagLiveData("ImmediateSync")
-                .observe(lifecycleOwner) { workInfos ->
-                    for (workInfo in workInfos) {
-                        if (workInfo.state == WorkInfo.State.SUCCEEDED) {
-                            val resultMessage =
-                                workInfo.outputData.getString("SYNC_RESULT") ?: "Sync completed"
-                            Log.d(
-                                "ThreeGenSync",
-                                "🔥 From WorkManagerHelper Manual Sync Result: $resultMessage"
-                            )
-                            onResult(resultMessage)
-                        }
-                    }
-
-            }
-            // ✅ Observe periodic sync results
-            workManager.getWorkInfosByTagLiveData("PeriodicSync").observe(lifecycleOwner) { workInfos ->
+        // ✅ Observe manual sync results
+        workManager.getWorkInfosByTagLiveData("ImmediateSync")
+            .observe(lifecycleOwner) { workInfos ->
                 for (workInfo in workInfos) {
                     if (workInfo.state == WorkInfo.State.SUCCEEDED) {
-                        val resultMessage = workInfo.outputData.getString("SYNC_RESULT") ?: "Periodic sync completed"
-                        Log.d("ThreeGenSync", "🔥 From WorkManagerHelper Periodic Sync Result: $resultMessage")
+                        val resultMessage =
+                            workInfo.outputData.getString("SYNC_RESULT") ?: "Sync completed"
+                        Log.d(
+                            "ThreeGenSync",
+                            "🔥 From WorkManagerHelper Manual Sync Result: $resultMessage"
+                        )
                         onResult(resultMessage)
                     }
                 }
+
             }
+        // ✅ Observe periodic sync results
+        workManager.getWorkInfosByTagLiveData("PeriodicSync").observe(lifecycleOwner) { workInfos ->
+            for (workInfo in workInfos) {
+                if (workInfo.state == WorkInfo.State.SUCCEEDED) {
+                    val resultMessage =
+                        workInfo.outputData.getString("SYNC_RESULT") ?: "Periodic sync completed"
+                    Log.d(
+                        "ThreeGenSync",
+                        "🔥 From WorkManagerHelper Periodic Sync Result: $resultMessage"
+                    )
+                    onResult(resultMessage)
+                }
+            }
+        }
         //}
     }
 

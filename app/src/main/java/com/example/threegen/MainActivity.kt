@@ -25,7 +25,7 @@ import com.example.threegen.util.SnackbarManager
 import com.example.threegen.util.WorkManagerHelper
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
+//@OptIn(ExperimentalMaterial3Api::class)
 class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -55,7 +55,7 @@ class MainActivity : ComponentActivity() {
                 RequestPermissions(activity = this@MainActivity)
 
                 // ✅ Schedule periodic background sync
-                WorkManagerHelper.schedulePeriodicSync(applicationContext)
+               // WorkManagerHelper.schedulePeriodicSync(applicationContext)
 
                 // ✅ Trigger immediate sync on app start
                 WorkManagerHelper.scheduleImmediateSync(applicationContext)
