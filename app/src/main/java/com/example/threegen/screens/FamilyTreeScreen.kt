@@ -95,13 +95,16 @@ fun FamilyTreeScreen(
     val parentIds = remember(members) { members.mapNotNull { it.parentID }.toSet() }
 
     // ✅ Filter and identify root members for the family tree.
-    val rootMembers = if (orphanMember) {
+    //Members who do not have a parent ID, but are explicitly listed in parentid column of members.
+    val rootMembers =  members.filter { it.parentID == null && it.id in parentIds }
+
+/*    val rootMembers = if (orphanMember) {
         //have no parent, no spouse, and are not referenced by other members as a parent or spouse.
         members.filter { it.parentID == null && it.spouseID == null && it.id !in parentIds && it.id !in members.mapNotNull { member -> member.spouseID } }
     } else {
         //Members who do not have a parent ID, but are explicitly listed in parentid column of members.
         members.filter { it.parentID == null && it.id in parentIds }
-    }
+    }*/
     // ✅ State variable to track the currently zoomed image URI.
     // When an image is clicked, this variable holds its URI to display it in a full-screen overlay.
     var zoomedImageUri by remember { mutableStateOf<String?>(null) }

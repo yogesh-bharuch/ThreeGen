@@ -135,8 +135,7 @@ fun AppNavigation(
         // Unused Orphan Members screen
         // shares FamilyTreeScreen with Unused Orphan Members screen with orphanMember = false as different parameter
         composable<UnusedMembers> {
-            FamilyTreeScreen(
-                orphanMember = true,
+            UnusedMembersScreen(
                 navController = navController,
                 viewModel = viewModel,
                 modifier = modifier
