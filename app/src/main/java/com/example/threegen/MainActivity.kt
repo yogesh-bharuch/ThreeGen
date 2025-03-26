@@ -89,5 +89,17 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+        // ✅ Trigger Firestore sync on fresh install
+        val sharedPreferences = getSharedPreferences("app_prefs", MODE_PRIVATE)
+        //sharedPreferences.edit().putBoolean("isFirstRun", true).apply()
+        val isFirstRun = sharedPreferences.getBoolean("isFirstRun", true)
+
+        if (isFirstRun) {
+            // 🔥 Firestore → Room sync on first install
+            viewModel.syncFirestoreToRoom()
+
+            // ✅ Mark first run as complete
+            sharedPreferences.edit().putBoolean("isFirstRun", false).apply()
+        }
     }
 }

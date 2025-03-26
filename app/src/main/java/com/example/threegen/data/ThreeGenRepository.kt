@@ -8,6 +8,8 @@ import com.example.threegen.util.SyncPreferences
 import com.example.threegen.util.WorkManagerHelper
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.tasks.await
+import java.util.UUID
 
 class ThreeGenRepository(private val threeGenDao: ThreeGenDao) {
 
@@ -30,6 +32,58 @@ class ThreeGenRepository(private val threeGenDao: ThreeGenDao) {
     suspend fun updateThreeGen(member: ThreeGen): Int {
         val returnedRows = threeGenDao.updateThreeGen(member) // Update the member in the database
         return returnedRows
+    }
+
+    /**
+     * Fetches Firestore data and maps it to `ThreeGen` entities.
+     * @return List of `ThreeGen` members mapped from Firestore.
+     */
+    suspend fun syncFirestoreToRoom(): List<ThreeGen> {
+        val members = mutableListOf<ThreeGen>()
+
+        try {
+            val documents = firestore.collection("ThreeGenMembers").get().await()
+
+            Log.d("FirestoreSync", "🔥 Fetched ${documents.size()} documents from Firestore")
+
+            if (documents.isEmpty) {
+                Log.e("FirestoreSync", "❌ No documents retrieved from Firestore")
+            } else {
+                for (doc in documents) {
+                    Log.d("FirestoreSync", "✅ Document: ${doc.id} -> ${doc.data}")
+
+                    // ✅ Map Firestore data manually to ThreeGen entity
+                    val member = ThreeGen(
+                        id = doc.getString("id") ?: UUID.randomUUID().toString(),
+                        firstName = doc.getString("firstName") ?: "",
+                        middleName = doc.getString("middleName"),
+                        lastName = doc.getString("lastName") ?: "",
+                        town = doc.getString("town") ?: "",
+                        shortName = doc.getString("shortName") ?: "",
+                        isAlive = doc.getBoolean("isAlive") ?: true,
+                        childNumber = doc.getLong("childNumber")?.toInt(),
+                        comment = doc.getString("comment"),
+                        imageUri = doc.getString("imageUri"),
+                        syncStatus = SyncStatus.SYNCED,          // ✅ Mark as synced
+                        deleted = false,                         // ✅ Not deleted during sync
+                        createdAt = doc.getLong("createdAt") ?: System.currentTimeMillis(),
+                        createdBy = doc.getString("createdBy"),
+                        updatedAt = doc.getLong("updatedAt") ?: System.currentTimeMillis(),
+                        parentID = doc.getString("parentID"),
+                        spouseID = doc.getString("spouseID")
+                    )
+                    members.add(member)
+                }
+            }
+
+            Log.d("FirestoreSync", "✅ Mapped ${members.size} documents to ThreeGen objects")
+
+        } catch (e: Exception) {
+            Log.e("FirestoreSync", "❌ Failed to fetch Firestore data: ${e.message}", e)
+        }
+
+        // ✅ Return the list of fetched members
+        return members
     }
 
     /**

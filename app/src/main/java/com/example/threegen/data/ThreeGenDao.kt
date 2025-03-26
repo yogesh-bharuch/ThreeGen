@@ -22,6 +22,34 @@ interface ThreeGenDao {
     suspend fun insert(threeGen: ThreeGen): Long
 
     /**
+     * Inserts a list of members into Room.
+     * Uses `REPLACE` strategy to avoid duplication issues during Firestore sync.
+     */
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertOrUpdateMembers(members: List<ThreeGen>)
+
+    /**
+     * Clears all local data. (For full sync restoration)
+     */
+    @Query("DELETE FROM three_gen_table")
+    suspend fun clearAll()
+
+    /**
+     * Updates the parent and spouse references for a given member.
+     *
+     * @param id The member ID.
+     * @param parentID The parent ID (nullable).
+     * @param spouseID The spouse ID (nullable).
+     */
+    @Query("""
+    UPDATE three_gen_table 
+    SET parentID = :parentID, spouseID = :spouseID 
+    WHERE id = :id
+""")
+    suspend fun updateRelationships(id: String, parentID: String?, spouseID: String?)
+
+
+    /**
      * **Upserts** (Insert or Update) a member into the database.
      * If the member already exists, it updates the entry.
      */

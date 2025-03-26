@@ -394,11 +394,8 @@ class ThreeGenViewModel(
             "createdBy" to threeGen.createdBy,
             "parentID" to threeGen.parentID,
             "spouseID" to threeGen.spouseID,
-
-            // ✅ New fields
-            "isAlive" to threeGen.isAlive,              // New field: Alive status
-            //"deleted" to threeGen.deleted,              // New field: Soft delete flag
-            "updatedAt" to System.currentTimeMillis()   // New field: Sync timestamp
+            "isAlive" to threeGen.isAlive,
+            "updatedAt" to System.currentTimeMillis()
         )
 
         try {
@@ -489,5 +486,93 @@ class ThreeGenViewModel(
         }
     }
     // completed Method to sync local data to Firestore---------------------------------------------------------------------------------------------------------------
+
+    /**
+     * Syncs Firestore data to the local Room database.
+     *
+     * Steps:
+     * 1. Fetches all Firestore members.
+     * 2. Clears the local Room database.
+     * 3. Inserts all members without relationships.
+     * 4. Updates parent and spouse IDs using the fetched list.
+     */
+    fun syncFirestoreToRoom() {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                Log.d("FirestoreSync", "🔥 Syncing Firestore data to local Room DB...")
+
+                // 🔥 Step 1: Fetch all members from Firestore
+                val members = repository.syncFirestoreToRoom()
+
+                if (members.isNotEmpty()) {
+
+                    // 🔥 Step 2: Clear the local Room database before inserting new data
+                    dao.clearAll()
+                    Log.d("FirestoreSync", "✅ Cleared local Room DB before inserting new data")
+
+                    // 🔥 Step 3: Insert all members WITHOUT relationships
+                    val membersWithoutRelationships = members.map { member ->
+                        member.copy(parentID = null, spouseID = null)  // Remove relationships before insertion
+                    }
+                    dao.insertOrUpdateMembers(membersWithoutRelationships)
+                    Log.d("FirestoreSync", "✅ Inserted ${members.size} members without relationships")
+
+                    // 🔥 Step 4: Update parent and spouse IDs using the fetched list
+                    updateRelationshipsInRoom(members)
+
+                } else {
+                    Log.d("FirestoreSync", "⚠️ No members retrieved from Firestore")
+                }
+
+            } catch (e: Exception) {
+                Log.e("FirestoreSync", "❌ Sync failed: ${e.message}", e)
+            }
+        }
+    }
+
+
+    /**
+     * Updates parent and spouse relationships in Room using the fetched Firestore members list.
+     *
+     * Steps:
+     * 1. Iterates over the `members` list.
+     * 2. Finds the corresponding member in Room by ID.
+     * 3. Updates `parentID` and `spouseID` in Room.
+     * 4. Logs the number of successfully updated relationships.
+     *
+     * @param members The list of members fetched from Firestore.
+     */
+    private suspend fun updateRelationshipsInRoom(members: List<ThreeGen>) {
+        try {
+            Log.d("FirestoreSync", "🔥 Updating relationships in Room...")
+
+            var updatedCount = 0  // Track the number of successful updates
+
+            // 🔥 Batch relationship updates
+            members.forEach { member ->
+                if (member.parentID != null || member.spouseID != null) {
+
+                    // ✅ Find the corresponding Room member by ID
+                    val localMember = dao.getMemberByIdSync(member.id)
+
+                    if (localMember != null) {
+                        // ✅ Update the member with parent and spouse IDs
+                        dao.updateRelationships(
+                            id = member.id,
+                            parentID = member.parentID,
+                            spouseID = member.spouseID
+                        )
+                        updatedCount++  // Increment the update counter
+                        Log.d("FirestoreSync", "✅ Updated relationships for: ${member.firstName}")
+                    }
+                }
+            }
+
+            Log.d("FirestoreSync", "✅ Successfully updated $updatedCount relationships in Room")
+
+        } catch (e: Exception) {
+            Log.e("FirestoreSync", "❌ Relationship update failed: ${e.message}", e)
+        }
+    }
 }
 
