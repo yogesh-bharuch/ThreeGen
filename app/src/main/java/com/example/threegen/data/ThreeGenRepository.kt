@@ -39,10 +39,11 @@ class ThreeGenRepository(private val threeGenDao: ThreeGenDao) {
      * 🔥 Fetches only modified members since the last sync and maps them to `ThreeGen`.
      * Sets `deleted = false` by default since Firestore does not have this field.
      */
-    suspend fun syncFirestoreToRoom(lastSyncTime: Long): List<ThreeGen> {
+    suspend fun syncFirestoreToRoom(lastSyncTime: Long, currentUserId: String): List<ThreeGen> {
         return try {
-            val query = if (lastSyncTime > 0) {
-                collectionRef.whereGreaterThan("updatedAt", lastSyncTime)
+            val query = if (lastSyncTime > 0) { collectionRef
+                .whereNotEqualTo("createdBy", currentUserId)
+                .whereGreaterThan("updatedAt", lastSyncTime)
             } else {
                 collectionRef  // First-time sync: fetch all members
             }
@@ -71,7 +72,7 @@ class ThreeGenRepository(private val threeGenDao: ThreeGenDao) {
                         createdBy = doc.getString("createdBy") ?: "Unknown"
                     )
                 }
-                Log.d("FirestoreSync", "✅ Fetched ${members.size} modified members")
+                Log.d("FirestoreSync", "✅ Fetched ${members.size} members, excluding current user")
                 members
             } else {
                 Log.d("FirestoreSync", "✅ No modified members found since last sync")

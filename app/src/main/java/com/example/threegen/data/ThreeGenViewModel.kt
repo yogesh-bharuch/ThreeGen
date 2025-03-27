@@ -496,13 +496,13 @@ class ThreeGenViewModel(
      * 3. Inserts all members without relationships.
      * 4. Updates parent and spouse IDs using the fetched list.
      */
-    fun syncFirestoreToRoom(lastSyncTime: Long, isFirstRun: Boolean = false) {
+    fun syncFirestoreToRoom(lastSyncTime: Long, isFirstRun: Boolean = false, currentUserId: String) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 Log.d("FirestoreSync", "🔥 Syncing Firestore data to Room (lastSyncTime: $lastSyncTime, First Run: $isFirstRun)")
 
                 // ✅ Fetch only modified members since the last sync
-                val members = repository.syncFirestoreToRoom(lastSyncTime)
+                val members = repository.syncFirestoreToRoom(lastSyncTime, currentUserId)
                 Log.d("FirestoreSync", "✅ Fetched ${members.size} modified members")
 
                 if (members.isNotEmpty()) {

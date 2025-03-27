@@ -23,6 +23,7 @@ import com.example.threegen.ui.theme.ThreeGenTheme
 import com.example.threegen.util.RequestPermissions
 import com.example.threegen.util.SnackbarManager
 import com.example.threegen.util.WorkManagerHelper
+import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 
 //@OptIn(ExperimentalMaterial3Api::class)
@@ -94,6 +95,8 @@ class MainActivity : ComponentActivity() {
         //sharedPreferences.edit().putBoolean("isFirstRun", true).apply()
         val isFirstRun = sharedPreferences.getBoolean("isFirstRun", true)
         val lastSyncTime = sharedPreferences.getLong("last_sync_time", 0L)
+        // 🔥 Get current user ID from Firebase Authentication
+        val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: "Unknown"
         Log.d(
             "FirestoreSync",
             "🔥 From MainActivity isFirstRun: $isFirstRun, lastSyncTime: $lastSyncTime"
@@ -101,13 +104,13 @@ class MainActivity : ComponentActivity() {
 
         if (isFirstRun) {
             // ✅ First-time sync → Clear local DB
-            viewModel.syncFirestoreToRoom(0L, isFirstRun = true)
+            viewModel.syncFirestoreToRoom(0L, isFirstRun = true, currentUserId)
 
             // ✅ Mark first run as complete
             sharedPreferences.edit().putBoolean("isFirstRun", false).apply()
         } else {
             // ✅ Normal sync → Only update modified members
-            viewModel.syncFirestoreToRoom(lastSyncTime, isFirstRun = false)
+            viewModel.syncFirestoreToRoom(lastSyncTime, isFirstRun = false, currentUserId)
         }
 
         // ✅ Store the current time as the new sync timestamp
