@@ -5,13 +5,14 @@ import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.asLiveData
 import com.example.threegen.util.SyncPreferences
-import com.example.threegen.util.WorkManagerHelper
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.tasks.await
-import java.util.UUID
 
 class ThreeGenRepository(private val threeGenDao: ThreeGenDao) {
+
+    private val firestore = FirebaseFirestore.getInstance()
+    private val collectionRef = firestore.collection("ThreeGenMembers")
 
     /**
      * Retrieves all members from the Room database as LiveData.
@@ -35,28 +36,25 @@ class ThreeGenRepository(private val threeGenDao: ThreeGenDao) {
     }
 
     /**
-     * Fetches Firestore data and maps it to `ThreeGen` entities.
-     * @return List of `ThreeGen` members mapped from Firestore.
+     * 🔥 Fetches only modified members since the last sync and maps them to `ThreeGen`.
+     * Sets `deleted = false` by default since Firestore does not have this field.
      */
-    suspend fun syncFirestoreToRoom(): List<ThreeGen> {
-        val members = mutableListOf<ThreeGen>()
-
-        try {
-            val documents = firestore.collection("ThreeGenMembers").get().await()
-
-            Log.d("FirestoreSync", "🔥 Fetched ${documents.size()} documents from Firestore")
-
-            if (documents.isEmpty) {
-                Log.e("FirestoreSync", "❌ No documents retrieved from Firestore")
+    suspend fun syncFirestoreToRoom(lastSyncTime: Long): List<ThreeGen> {
+        return try {
+            val query = if (lastSyncTime > 0) {
+                collectionRef.whereGreaterThan("updatedAt", lastSyncTime)
             } else {
-                for (doc in documents) {
-                    Log.d("FirestoreSync", "✅ Document: ${doc.id} -> ${doc.data}")
+                collectionRef  // First-time sync: fetch all members
+            }
 
-                    // ✅ Map Firestore data manually to ThreeGen entity
-                    val member = ThreeGen(
-                        id = doc.getString("id") ?: UUID.randomUUID().toString(),
+            val snapshot = query.get().await()
+
+            if (!snapshot.isEmpty) {
+                val members = snapshot.documents.map { doc ->
+                    ThreeGen(
+                        id = doc.getString("id") ?: "",
                         firstName = doc.getString("firstName") ?: "",
-                        middleName = doc.getString("middleName"),
+                        middleName = doc.getString("middleName") ?: "",
                         lastName = doc.getString("lastName") ?: "",
                         town = doc.getString("town") ?: "",
                         shortName = doc.getString("shortName") ?: "",
@@ -64,27 +62,27 @@ class ThreeGenRepository(private val threeGenDao: ThreeGenDao) {
                         childNumber = doc.getLong("childNumber")?.toInt(),
                         comment = doc.getString("comment"),
                         imageUri = doc.getString("imageUri"),
-                        syncStatus = SyncStatus.SYNCED,          // ✅ Mark as synced
-                        deleted = false,                         // ✅ Not deleted during sync
-                        createdAt = doc.getLong("createdAt") ?: System.currentTimeMillis(),
-                        createdBy = doc.getString("createdBy"),
-                        updatedAt = doc.getLong("updatedAt") ?: System.currentTimeMillis(),
+                        syncStatus = SyncStatus.SYNCED,
+                        deleted = false,  // ✅ Firestore does NOT have this field → set to `false`
                         parentID = doc.getString("parentID"),
-                        spouseID = doc.getString("spouseID")
+                        spouseID = doc.getString("spouseID"),
+                        updatedAt = doc.getLong("updatedAt") ?: System.currentTimeMillis(),
+                        createdAt = doc.getLong("createdAt") ?: System.currentTimeMillis(),
+                        createdBy = doc.getString("createdBy") ?: "Unknown"
                     )
-                    members.add(member)
                 }
+                Log.d("FirestoreSync", "✅ Fetched ${members.size} modified members")
+                members
+            } else {
+                Log.d("FirestoreSync", "✅ No modified members found since last sync")
+                emptyList()
             }
-
-            Log.d("FirestoreSync", "✅ Mapped ${members.size} documents to ThreeGen objects")
-
         } catch (e: Exception) {
-            Log.e("FirestoreSync", "❌ Failed to fetch Firestore data: ${e.message}", e)
+            Log.e("FirestoreSync", "❌ Sync failed: ${e.message}", e)
+            emptyList()
         }
-
-        // ✅ Return the list of fetched members
-        return members
     }
+
 
     /**
      * Marks a specific member as deleted in the database.
@@ -179,7 +177,7 @@ class ThreeGenRepository(private val threeGenDao: ThreeGenDao) {
     }
 
     //-----------Firebase -->  local sync start ----------
-    private val firestore = FirebaseFirestore.getInstance()
+    //private val firestore = FirebaseFirestore.getInstance()
 
     /**
      * ✅ Retrieve the last sync timestamp

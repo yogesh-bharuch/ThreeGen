@@ -34,7 +34,8 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         val dao = MainApplication.threeGenDatabase.getThreeGenDao()
-        val firestore = MainApplication.instance.let { com.google.firebase.firestore.FirebaseFirestore.getInstance() }
+        val firestore =
+            MainApplication.instance.let { com.google.firebase.firestore.FirebaseFirestore.getInstance() }
         val auth = com.google.firebase.auth.FirebaseAuth.getInstance()
 
         val viewModel: ThreeGenViewModel by viewModels { ThreeGenViewModelFactory(dao, firestore) }
@@ -55,14 +56,17 @@ class MainActivity : ComponentActivity() {
                 RequestPermissions(activity = this@MainActivity)
 
                 // ✅ Schedule periodic background sync
-               // WorkManagerHelper.schedulePeriodicSync(applicationContext)
+                // WorkManagerHelper.schedulePeriodicSync(applicationContext)
 
                 // ✅ Trigger immediate sync on app start
                 WorkManagerHelper.scheduleImmediateSync(applicationContext)
 
                 // ✅ Observe sync result using the work ID // syncRequest.id
                 LaunchedEffect(Unit) {
-                    WorkManagerHelper.observeSyncResult(context, this@MainActivity) { resultMessage ->
+                    WorkManagerHelper.observeSyncResult(
+                        context,
+                        this@MainActivity
+                    ) { resultMessage ->
                         scope.launch {
                             SnackbarManager.showMessage(resultMessage)
                         }
@@ -77,7 +81,9 @@ class MainActivity : ComponentActivity() {
                     AppNavigation(
                         viewModel = viewModel,
                         authViewModel = authViewModel,
-                        modifier = Modifier.padding(innerPadding).padding(8.dp),
+                        modifier = Modifier
+                            .padding(innerPadding)
+                            .padding(8.dp),
                         navController = navController
                     )
                 }
@@ -87,13 +93,25 @@ class MainActivity : ComponentActivity() {
         val sharedPreferences = getSharedPreferences("app_prefs", MODE_PRIVATE)
         //sharedPreferences.edit().putBoolean("isFirstRun", true).apply()
         val isFirstRun = sharedPreferences.getBoolean("isFirstRun", true)
+        val lastSyncTime = sharedPreferences.getLong("last_sync_time", 0L)
+        Log.d(
+            "FirestoreSync",
+            "🔥 From MainActivity isFirstRun: $isFirstRun, lastSyncTime: $lastSyncTime"
+        )
 
         if (isFirstRun) {
-            // 🔥 Firestore → Room sync on first install
-            viewModel.syncFirestoreToRoom()
+            // ✅ First-time sync → Clear local DB
+            viewModel.syncFirestoreToRoom(0L, isFirstRun = true)
 
             // ✅ Mark first run as complete
             sharedPreferences.edit().putBoolean("isFirstRun", false).apply()
+        } else {
+            // ✅ Normal sync → Only update modified members
+            viewModel.syncFirestoreToRoom(lastSyncTime, isFirstRun = false)
         }
+
+        // ✅ Store the current time as the new sync timestamp
+        val currentSyncTime = System.currentTimeMillis()
+        sharedPreferences.edit().putLong("last_sync_time", currentSyncTime).apply()
     }
 }

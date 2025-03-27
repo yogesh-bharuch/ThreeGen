@@ -496,32 +496,37 @@ class ThreeGenViewModel(
      * 3. Inserts all members without relationships.
      * 4. Updates parent and spouse IDs using the fetched list.
      */
-    fun syncFirestoreToRoom() {
+    fun syncFirestoreToRoom(lastSyncTime: Long, isFirstRun: Boolean = false) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                Log.d("FirestoreSync", "🔥 Syncing Firestore data to local Room DB...")
+                Log.d("FirestoreSync", "🔥 Syncing Firestore data to Room (lastSyncTime: $lastSyncTime, First Run: $isFirstRun)")
 
-                // 🔥 Step 1: Fetch all members from Firestore
-                val members = repository.syncFirestoreToRoom()
+                // ✅ Fetch only modified members since the last sync
+                val members = repository.syncFirestoreToRoom(lastSyncTime)
+                Log.d("FirestoreSync", "✅ Fetched ${members.size} modified members")
 
                 if (members.isNotEmpty()) {
 
-                    // 🔥 Step 2: Clear the local Room database before inserting new data
-                    dao.clearAll()
-                    Log.d("FirestoreSync", "✅ Cleared local Room DB before inserting new data")
+                    if (isFirstRun) {
+                        // 🔥 First App Start → Clear local Room DB
+                        dao.clearAll()
+                        Log.d("FirestoreSync", "✅ Cleared local Room DB before inserting new data")
+                    }
 
-                    // 🔥 Step 3: Insert all members WITHOUT relationships
+                    // 🔥 Step 1: Insert all members WITHOUT relationships
                     val membersWithoutRelationships = members.map { member ->
-                        member.copy(parentID = null, spouseID = null)  // Remove relationships before insertion
+                        member.copy(parentID = null, spouseID = null)  // Remove relationships temporarily
                     }
                     dao.insertOrUpdateMembers(membersWithoutRelationships)
                     Log.d("FirestoreSync", "✅ Inserted ${members.size} members without relationships")
 
-                    // 🔥 Step 4: Update parent and spouse IDs using the fetched list
+                    // 🔥 Step 2: Update parent and spouse IDs
                     updateRelationshipsInRoom(members)
 
+                    Log.d("FirestoreSync", "✅ Synced ${members.size} modified members to Room")
+
                 } else {
-                    Log.d("FirestoreSync", "⚠️ No members retrieved from Firestore")
+                    Log.d("FirestoreSync", "✅ No modified members found")
                 }
 
             } catch (e: Exception) {
@@ -529,6 +534,7 @@ class ThreeGenViewModel(
             }
         }
     }
+
 
 
     /**
