@@ -298,7 +298,7 @@ class ThreeGenViewModel(
     val syncMessage: StateFlow<String> = _syncMessage
 
     fun syncLocalDataToFirestore(callback: (String) -> Unit) {
-        Log.d("FirestoreViewModel", "🔥 From ViewModel: syncLocalDataToFirestore called")
+        Log.d("SyncFlow", "🔥 From ViewModel: syncLocalDataToFirestore called")
 
         val currentUserId = auth.currentUser?.uid
         if (currentUserId == null) {
