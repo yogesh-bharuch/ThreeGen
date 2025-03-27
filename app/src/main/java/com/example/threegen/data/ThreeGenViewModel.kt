@@ -313,8 +313,8 @@ class ThreeGenViewModel(
         viewModelScope.launch {
             try {
                 // ✅ Fetch all members mark for deleted members will not fetch
-                val allMembers = withContext(Dispatchers.IO) {
-                    repository.getAllMembers()
+                val unsyncedMembers  = withContext(Dispatchers.IO) {
+                    repository.getUnsyncedMembers()  // ✅ Optimized query
                 }
 
                 // ✅ Fetch soft-deleted members
@@ -322,13 +322,10 @@ class ThreeGenViewModel(
                     repository.getMarkAsDeletedMembers()
                 }
 
-                // ✅ Filter only unsynced members
-                val unsyncedMembers = allMembers.filter { it.syncStatus != SyncStatus.SYNCED }
-
                 //  ✅ if no unsynced members or no deleted members, return
                 if (unsyncedMembers.isEmpty() && deletedMembers.isEmpty()) {
                     val noSyncMessage = "No members to sync"
-                    Log.d("FirestoreViewModel", "🔥 $noSyncMessage")
+                    Log.d("SyncFlow", "🔥 $noSyncMessage")
                     callback(noSyncMessage)
                     return@launch
                 }
@@ -361,12 +358,12 @@ class ThreeGenViewModel(
 
                 // Prepare final result message
                 val resultMessage = messages.joinToString("\n").ifEmpty { "No members to sync" }
-                Log.d("FirestoreViewModel", "🔥 Final Sync Message: $resultMessage")
+                Log.d("SyncFlow", "🔥 Final Sync Message: $resultMessage")
 
                 // Trigger the callback with the final result
                 callback(resultMessage)
             } catch (e: Exception) {
-                Log.e("FirestoreViewModel", "❌ Error during sync operation: ${e.message}", e)
+                Log.e("SyncFlow", "❌ Error during sync operation: ${e.message}", e)
                 callback("❌ Error during sync: ${e.message}")
             }
         }
@@ -499,7 +496,7 @@ class ThreeGenViewModel(
     fun syncFirestoreToRoom(lastSyncTime: Long, isFirstRun: Boolean = false, currentUserId: String) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                Log.d("FirestoreSync", "🔥 Syncing Firestore data to Room (lastSyncTime: $lastSyncTime, First Run: $isFirstRun)")
+                Log.d("FirestoreSync", "🔥 From viewmodel Syncing Firestore data to Room (lastSyncTime: $lastSyncTime, First Run: $isFirstRun)")
 
                 // ✅ Fetch only modified members since the last sync
                 val members = repository.syncFirestoreToRoom(lastSyncTime, currentUserId)

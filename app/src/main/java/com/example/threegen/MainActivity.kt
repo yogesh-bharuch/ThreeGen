@@ -22,9 +22,11 @@ import com.example.threegen.data.ThreeGenViewModelFactory
 import com.example.threegen.ui.theme.ThreeGenTheme
 import com.example.threegen.util.RequestPermissions
 import com.example.threegen.util.SnackbarManager
+import com.example.threegen.util.WorkManagerHelper
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 
+//@OptIn(ExperimentalMaterial3Api::class)
 class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -32,55 +34,42 @@ class MainActivity : ComponentActivity() {
 
         enableEdgeToEdge()
 
-        // ✅ Initialize ViewModels and Firebase instances
         val dao = MainApplication.threeGenDatabase.getThreeGenDao()
-        val firestore = MainApplication.instance.let {
-            com.google.firebase.firestore.FirebaseFirestore.getInstance()
-        }
+        val firestore =
+            MainApplication.instance.let { com.google.firebase.firestore.FirebaseFirestore.getInstance() }
         val auth = com.google.firebase.auth.FirebaseAuth.getInstance()
 
         val viewModel: ThreeGenViewModel by viewModels { ThreeGenViewModelFactory(dao, firestore) }
         val authViewModel: AuthViewModel by viewModels { AuthViewModelFactory(auth) }
 
-        // ✅ Get shared preferences for first run and last sync time
-        val sharedPreferences = getSharedPreferences("app_prefs", MODE_PRIVATE)
-        val isFirstRun = sharedPreferences.getBoolean("isFirstRun", true)
-        val lastSyncTime = sharedPreferences.getLong("last_sync_time", 0L)
-        val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: "Unknown"
-
-        Log.d("FirestoreSync", "🔥 From MainActivity: isFirstRun: $isFirstRun, lastSyncTime: $lastSyncTime")
+        // ✅ Schedule periodic sync on network availability
+        WorkManagerHelper.schedulePeriodicSync(applicationContext)
+        Log.d("Sync", "🔥 From MainActivity Periodic Sync Scheduled")
 
         setContent {
             ThreeGenTheme {
                 val context = LocalContext.current
                 val scope = rememberCoroutineScope()
                 val snackbarHostState = SnackbarManager.getSnackbarHostState()
+
                 val navController = rememberNavController()
 
-                // ✅ Request necessary permissions
                 RequestPermissions(activity = this@MainActivity)
 
-                // ✅ Sync local → Firestore first, then Firestore → Room
+                // ✅ Schedule periodic background sync
+                // WorkManagerHelper.schedulePeriodicSync(applicationContext)
+
+                // ✅ Trigger immediate sync on app start
+                WorkManagerHelper.scheduleImmediateSync(applicationContext)
+
+                // ✅ Observe sync result using the work ID // syncRequest.id
                 LaunchedEffect(Unit) {
-                    scope.launch {
-                        // ✅ Step 1: Room → Firestore sync
-                        viewModel.syncLocalDataToFirestore { message ->
-                            Log.d("SyncFlow", "🔥 Room → Firestore: $message")
-
-                            // ✅ Step 2: Firestore → Room sync (only after Room → Firestore completes)
-                            if (isFirstRun) {
-                                viewModel.syncFirestoreToRoom(0L, isFirstRun = true, currentUserId)
-                                sharedPreferences.edit().putBoolean("isFirstRun", false).apply()
-                            } else {
-                                viewModel.syncFirestoreToRoom(lastSyncTime, isFirstRun = false, currentUserId)
-                            }
-
-                            // ✅ Store current sync time
-                            val currentSyncTime = System.currentTimeMillis()
-                            sharedPreferences.edit().putLong("last_sync_time", currentSyncTime).apply()
-
-                            // ✅ Show sync result in Snackbar
-                            SnackbarManager.showMessage("🔥 Sync completed successfully!")
+                    WorkManagerHelper.observeSyncResult(
+                        context,
+                        this@MainActivity
+                    ) { resultMessage ->
+                        scope.launch {
+                            SnackbarManager.showMessage(resultMessage)
                         }
                     }
                 }
@@ -101,5 +90,31 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+        // ✅ Trigger Firestore sync on fresh install
+        val sharedPreferences = getSharedPreferences("app_prefs", MODE_PRIVATE)
+        //sharedPreferences.edit().putBoolean("isFirstRun", true).apply()
+        val isFirstRun = sharedPreferences.getBoolean("isFirstRun", true)
+        val lastSyncTime = sharedPreferences.getLong("last_sync_time", 0L)
+        // 🔥 Get current user ID from Firebase Authentication
+        val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: "Unknown"
+        Log.d(
+            "FirestoreSync",
+            "🔥 From MainActivity isFirstRun: $isFirstRun, lastSyncTime: $lastSyncTime"
+        )
+
+        if (isFirstRun) {
+            // ✅ First-time sync → Clear local DB
+            viewModel.syncFirestoreToRoom(0L, isFirstRun = true, currentUserId)
+
+            // ✅ Mark first run as complete
+            sharedPreferences.edit().putBoolean("isFirstRun", false).apply()
+        } else {
+            // ✅ Normal sync → Only update modified members
+            viewModel.syncFirestoreToRoom(lastSyncTime, isFirstRun = false, currentUserId)
+        }
+
+        // ✅ Store the current time as the new sync timestamp
+        val currentSyncTime = System.currentTimeMillis()
+        sharedPreferences.edit().putLong("last_sync_time", currentSyncTime).apply()
     }
 }

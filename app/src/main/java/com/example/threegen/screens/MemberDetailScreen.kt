@@ -147,12 +147,12 @@ fun MemberDetailScreen(memberId: String, navController: NavHostController, viewM
                                             viewModel.clearEditableSpouse() // Clear parent details if parent changed od add
                                             viewModel.clearEditableParent() // Clear parent details if spouse changed od add
                                             // ✅ Step 1: Room → Firestore sync
-                                            viewModel.syncLocalDataToFirestore { syncMessage ->
+                                            /*viewModel.syncLocalDataToFirestore { syncMessage ->
                                                 Log.d("SyncFlow", "🔥 Room → Firestore: $syncMessage")
                                                 // ✅ Display the sync result in a Snackbar
                                                 SnackbarManager.showMessage("Sync Result: $syncMessage")
-                                            }
-                                                  //WorkManagerHelper.scheduleImmediateSync(context)
+                                            }*/
+                                                  WorkManagerHelper.scheduleImmediateSync(context)
                                         },
                                         modifier = Modifier.weight(1f)
                                     ) { Text(text = "Save") }

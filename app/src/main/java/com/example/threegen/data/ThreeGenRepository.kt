@@ -85,6 +85,7 @@ class ThreeGenRepository(private val threeGenDao: ThreeGenDao) {
     }
 
 
+
     /**
      * Marks a specific member as deleted in the database.
      */
@@ -93,6 +94,10 @@ class ThreeGenRepository(private val threeGenDao: ThreeGenDao) {
         // after delete in firestore delete logic to be developed
         //WorkManagerHelper.scheduleImmediateSync(context)
     //threeGenDao.deleteThreeGen(member.id)
+    }
+
+    suspend fun getUnsyncedMembers(): List<ThreeGen> {
+        return threeGenDao.getUnsyncedMembers()
     }
 
     suspend fun deleteThreeGen(member: ThreeGen) {
