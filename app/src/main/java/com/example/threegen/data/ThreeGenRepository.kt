@@ -36,19 +36,20 @@ class ThreeGenRepository(private val threeGenDao: ThreeGenDao) {
     }
 
     /**
-     * 🔥 Fetches only modified members since the last sync and maps them to `ThreeGen`.
+     * 🔥 Fetches only (modified members since the last sync + not created by the same user) and maps them to `ThreeGen`.
      * Sets `deleted = false` by default since Firestore does not have this field.
      */
     suspend fun syncFirestoreToRoom(lastSyncTime: Long, currentUserId: String): List<ThreeGen> {
         return try {
             val query = if (lastSyncTime > 0) { collectionRef
-                .whereNotEqualTo("createdBy", currentUserId)
                 .whereGreaterThan("updatedAt", lastSyncTime)
+                .whereNotEqualTo("createdBy", currentUserId)
             } else {
                 collectionRef  // First-time sync: fetch all members
             }
 
             val snapshot = query.get().await()
+            Log.d("FirestoreSync", "✅ From Repository.syncFirestoreToRoom Query snapshot size: ${snapshot.size()}")
 
             if (!snapshot.isEmpty) {
                 val members = snapshot.documents.map { doc ->
@@ -72,14 +73,16 @@ class ThreeGenRepository(private val threeGenDao: ThreeGenDao) {
                         createdBy = doc.getString("createdBy") ?: "Unknown"
                     )
                 }
-                Log.d("FirestoreSync", "✅ Fetched ${members.size} members, excluding current user")
+                Log.d("FirestoreSync", "✅ From Repository.syncFirestoreToRoom Query members size: ${members.size}")
+                //returns
                 members
             } else {
-                Log.d("FirestoreSync", "✅ No modified members found since last sync")
+                Log.d("FirestoreSync", "✅ From Repository.syncFirestoreToRoom No modified members found since last sync")
+                //returns
                 emptyList()
             }
         } catch (e: Exception) {
-            Log.e("FirestoreSync", "❌ Sync failed: ${e.message}", e)
+            Log.e("FirestoreSync", "❌ From Repository.syncFirestoreToRoom Sync failed: ${e.message}", e)
             emptyList()
         }
     }

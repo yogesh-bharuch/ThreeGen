@@ -12,12 +12,35 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
+import androidx.work.workDataOf
+import com.example.threegen.data.workers.SyncFirestoreToRoomWorker
+import com.example.threegen.data.workers.SyncLocalToFirestoreWorker
 import java.util.concurrent.TimeUnit
 
 /**
  * WorkManagerHelper manages scheduling and executing sync jobs.
  */
 object WorkManagerHelper {
+
+        fun chainSyncJobs(context: Context, lastSyncTime: Long, currentUserId: String) {
+            val workManager = WorkManager.getInstance(context)
+            val inputData = workDataOf("LAST_SYNC_TIME" to lastSyncTime, "CURRENT_USER_ID" to currentUserId)
+
+            val syncLocalToFirestoreWork = OneTimeWorkRequestBuilder<SyncLocalToFirestoreWorker>()
+                .addTag("SyncLocalToFirestore")
+                .build()
+
+            val syncFirestoreToRoomWork = OneTimeWorkRequestBuilder<SyncFirestoreToRoomWorker>()
+                .setInputData(inputData)
+                .addTag("SyncFirestoreToRoom")
+                .build()
+
+            workManager.beginWith(syncLocalToFirestoreWork)
+                .then(syncFirestoreToRoomWork)
+                .enqueue()
+
+            Log.d("WorkManagerHelper", "🔥 Chained sync jobs enqueued")
+        }
 
     /**
      * ✅ Schedules an immediate one-time sync and observes the result.
@@ -101,7 +124,7 @@ object WorkManagerHelper {
     /**
      * ✅ Schedules periodic sync (every 15 minutes) and returns the WorkRequest.
      */ //: WorkRequest
-    fun schedulePeriodicSync(context: Context) {
+    fun schedulePeriodicSync(context: Context, timeIntervalInMinute : Long = 720) {
         val constraints = Constraints.Builder()
             .setRequiredNetworkType(NetworkType.CONNECTED)
             .setRequiresBatteryNotLow(true)
@@ -109,7 +132,7 @@ object WorkManagerHelper {
             .build()
 
         val periodicSyncRequest = PeriodicWorkRequestBuilder<SyncWorker>(
-            15, TimeUnit.MINUTES
+            timeIntervalInMinute, TimeUnit.MINUTES
         )
             .setConstraints(constraints)
             .setBackoffCriteria(

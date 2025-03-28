@@ -53,6 +53,8 @@ class ThreeGenViewModel(
         }
     }
 
+    var isSyncedInSession = false // is used in main activity to handle sync once only during app start
+
     // ✅ Holds the full list of members from the database
     private val _threeGenList = MutableStateFlow<List<ThreeGen>>(emptyList())
     val threeGenList: StateFlow<List<ThreeGen>> = _threeGenList
@@ -489,25 +491,26 @@ class ThreeGenViewModel(
      *
      * Steps:
      * 1. Fetches all Firestore members.
-     * 2. Clears the local Room database.
+     * 2. Clears the local Room database If it is a first run.
      * 3. Inserts all members without relationships.
      * 4. Updates parent and spouse IDs using the fetched list.
      */
     fun syncFirestoreToRoom(lastSyncTime: Long, isFirstRun: Boolean = false, currentUserId: String) {
+
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                Log.d("FirestoreSync", "🔥 From viewmodel Syncing Firestore data to Room (lastSyncTime: $lastSyncTime, First Run: $isFirstRun)")
+                Log.d("FirestoreSync", "🔥 From viewmodel.syncFirestoreToRoom Syncing Firestore data to Room (lastSyncTime: $lastSyncTime, First Run: $isFirstRun)")
 
-                // ✅ Fetch only modified members since the last sync
+                // ✅ Fetch only modified members since the last sync and not created by the same user
                 val members = repository.syncFirestoreToRoom(lastSyncTime, currentUserId)
-                Log.d("FirestoreSync", "✅ Fetched ${members.size} modified members")
+                Log.d("FirestoreSync", "✅ From viewmodel.syncFirestoreToRoom Fetched ${members.size} modified members")
 
                 if (members.isNotEmpty()) {
 
                     if (isFirstRun) {
                         // 🔥 First App Start → Clear local Room DB
                         dao.clearAll()
-                        Log.d("FirestoreSync", "✅ Cleared local Room DB before inserting new data")
+                        Log.d("FirestoreSync", "✅ From viewmodel.syncFirestoreToRoom Cleared local Room DB before inserting new data")
                     }
 
                     // 🔥 Step 1: Insert all members WITHOUT relationships
@@ -515,26 +518,24 @@ class ThreeGenViewModel(
                         member.copy(parentID = null, spouseID = null)  // Remove relationships temporarily
                     }
                     dao.insertOrUpdateMembers(membersWithoutRelationships)
-                    Log.d("FirestoreSync", "✅ Inserted ${members.size} members without relationships")
+                    Log.d("FirestoreSync", "✅ From viewmodel.syncFirestoreToRoom Inserted ${members.size} members without relationships")
 
                     // 🔥 Step 2: Update parent and spouse IDs
                     updateRelationshipsInRoom(members)
 
-                    Log.d("FirestoreSync", "✅ Synced ${members.size} modified members to Room")
-
                 } else {
-                    Log.d("FirestoreSync", "✅ No modified members found")
+                    Log.d("FirestoreSync", "✅ From viewmodel.syncFirestoreToRoom No modified members found")
                 }
 
             } catch (e: Exception) {
-                Log.e("FirestoreSync", "❌ Sync failed: ${e.message}", e)
+                Log.e("FirestoreSync", "❌ viewmodel.syncFirestoreToRoom Sync failed: ${e.message}", e)
             }
         }
     }
 
 
-
     /**
+     * Called from `syncFirestoreToRoom` to update parent and spouse IDs in Room.
      * Updates parent and spouse relationships in Room using the fetched Firestore members list.
      *
      * Steps:
@@ -547,7 +548,7 @@ class ThreeGenViewModel(
      */
     private suspend fun updateRelationshipsInRoom(members: List<ThreeGen>) {
         try {
-            Log.d("FirestoreSync", "🔥 Updating relationships in Room...")
+            Log.d("FirestoreSync", "🔥 From viewmodel.updateRelationshipsInRoom Updating relationships in Room...")
 
             var updatedCount = 0  // Track the number of successful updates
 
@@ -566,15 +567,15 @@ class ThreeGenViewModel(
                             spouseID = member.spouseID
                         )
                         updatedCount++  // Increment the update counter
-                        Log.d("FirestoreSync", "✅ Updated relationships for: ${member.firstName}")
+                        Log.d("FirestoreSync", "✅ From viewmodel.updateRelationshipsInRoom Updated relationships for: ${member.firstName} ${member.middleName} ${member.lastName}")
                     }
                 }
             }
 
-            Log.d("FirestoreSync", "✅ Successfully updated $updatedCount relationships in Room")
+            Log.d("FirestoreSync", "✅ From viewmodel.updateRelationshipsInRoom Successfully updated $updatedCount relationships in Room")
 
         } catch (e: Exception) {
-            Log.e("FirestoreSync", "❌ Relationship update failed: ${e.message}", e)
+            Log.e("FirestoreSync", "❌ From viewmodel.updateRelationshipsInRoom Updated relationships Relationship update failed: ${e.message}", e)
         }
     }
 }

@@ -152,7 +152,7 @@ fun MemberDetailScreen(memberId: String, navController: NavHostController, viewM
                                                 // ✅ Display the sync result in a Snackbar
                                                 SnackbarManager.showMessage("Sync Result: $syncMessage")
                                             }*/
-                                                  WorkManagerHelper.scheduleImmediateSync(context)
+                                                  //WorkManagerHelper.scheduleImmediateSync(context)
                                         },
                                         modifier = Modifier.weight(1f)
                                     ) { Text(text = "Save") }
