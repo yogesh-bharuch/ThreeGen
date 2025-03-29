@@ -120,29 +120,20 @@ object WorkManagerHelper {
     /**
      * ✅ Schedules periodic sync (every 15 minutes) and returns the WorkRequest.
      */ //: WorkRequest
-    fun schedulePeriodicSync(
-        context: Context,
-        timeIntervalInMinute: Long = 60,
-        lastSyncTime: Long = 0L,         // Add last sync time
-        currentUserId: String = "Unknown" // Add current user ID
-    ) {
+    fun schedulePeriodicSync(context: Context, timeIntervalInMinute: Long = 720) {
         Log.d("FirestoreSync", "🔥 From WorkManagerHelper.PeriodicSync start")
+
         val constraints = Constraints.Builder()
             .setRequiredNetworkType(NetworkType.CONNECTED)
             .setRequiresBatteryNotLow(true)
             .setRequiresCharging(false)
             .build()
-        val inputData = workDataOf(
-            "LAST_SYNC_TIME" to lastSyncTime,
-            "CURRENT_USER_ID" to currentUserId
-        )
 
         //val periodicSyncRequest = PeriodicWorkRequestBuilder<SyncWorker>(
         val periodicSyncRequest = PeriodicWorkRequestBuilder<SyncFirestoreToRoomWorker>(
             timeIntervalInMinute, TimeUnit.MINUTES
         )
             .setConstraints(constraints)
-            .setInputData(inputData)
             .setBackoffCriteria(
                 BackoffPolicy.EXPONENTIAL,
                 30, TimeUnit.SECONDS
@@ -152,10 +143,10 @@ object WorkManagerHelper {
 
         WorkManager.getInstance(context).enqueueUniquePeriodicWork(
             "PeriodicSync",
-            ExistingPeriodicWorkPolicy.KEEP,
+            ExistingPeriodicWorkPolicy.UPDATE,
             periodicSyncRequest
         )
-        Log.d("FirestoreSync", "🔥 From WorkManagerHelper.Periodicsync : scheduled successfully at every $timeIntervalInMinute minutes")
+        Log.d("FirestoreSync", "🔥 From WorkManagerHelper.schedulePeriodicSync : scheduled successfully at every $timeIntervalInMinute minutes")
 
         // ✅ Return the WorkRequest for observation
         //return periodicSyncRequest

@@ -19,20 +19,18 @@ class SyncFirestoreToRoomWorker(
 ) : CoroutineWorker(context, params) {
 
     override suspend fun doWork(): Result {
-        val syncTime = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
-
-        // ✅ Fetch DAO and Firestore directly
-        val dao = ThreeGenDatabase.getInstance(applicationContext).getThreeGenDao()
-        val firestore = FirebaseFirestore.getInstance()
         val viewModel = ThreeGenViewModel.getInstance(applicationContext)
-        //val viewModel = ThreeGenViewModel(ThreeGenRepository(dao, firestore))   // ✅ Pass DAO and Firestore to ViewModel
-
+        val syncTime = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
         val lastSyncTime = inputData.getLong("LAST_SYNC_TIME", 0L)
-        val currentUserId = inputData.getString("CURRENT_USER_ID") ?: "Unknown"
+        val currentUserId = inputData.getString("CURRENT_USER_ID")
+        Log.d("FirestoreSync", "🔥 From SyncFirestoreToRoomWorker.doWork last sync time is : $lastSyncTime and currentUserId is $currentUserId")
+        //val currentUserId = inputData.getString("CURRENT_USER_ID") ?: "Unknown"
+        Log.d("FirestoreSync", "🔥 From SyncFirestoreToRoomWorker.doWork Worker started at: $syncTime")
+        Log.d("FirestoreSync", "📅 From SyncFirestoreToRoomWorker.doWork Last Sync Time: $lastSyncTime, User ID: $currentUserId")
 
         return try {
             // ✅ Trigger Firestore → Room sync
-            viewModel.syncFirestoreToRoom(lastSyncTime, isFirstRun = false, currentUserId) { message ->
+            viewModel.syncFirestoreToRoom(lastSyncTime, isFirstRun = false, currentUserId = currentUserId ?: "Unknown") { message ->
                 val newSyncTime = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
                 Log.d("FirestoreSync", "🔥 Periodic sync completed at: $newSyncTime with message: $message")
             }

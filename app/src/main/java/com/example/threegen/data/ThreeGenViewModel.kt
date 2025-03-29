@@ -508,7 +508,7 @@ class ThreeGenViewModel(
 
                 // ✅ Fetch only modified members since the last sync and not created by the same user
                 val members = repository.syncFirestoreToRoom(lastSyncTime, currentUserId1)
-                //Log.d("FirestoreSync", "✅ From viewmodel.syncFirestoreToRoom Fetched ${members.size} modified members")
+                Log.d("FirestoreSync", "✅ From viewmodel.syncFirestoreToRoom Fetched ${members.size} modified members")
 
                 if (members.isNotEmpty()) {
                     if (isFirstRun) {
