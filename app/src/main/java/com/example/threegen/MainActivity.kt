@@ -68,7 +68,7 @@ class MainActivity : ComponentActivity() {
                 // ✅ Schedule periodic Firestore-to-Room sync (every 15 min) in the background
                 LaunchedEffect(true) {
                     Log.d("FirestoreSync", "From Mainactivity.schedulePeriodicSync sync jobs")
-                    WorkManagerHelper.schedulePeriodicSync(context, timeIntervalInMinute = 180)
+                    //WorkManagerHelper.schedulePeriodicSync(context, timeIntervalInMinute = 180)
                 }
 
                 // ✅ Observe and display sync results
