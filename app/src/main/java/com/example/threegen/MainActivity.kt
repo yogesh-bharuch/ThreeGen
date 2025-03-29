@@ -24,6 +24,7 @@ import com.example.threegen.util.RequestPermissions
 import com.example.threegen.util.SnackbarManager
 import com.example.threegen.util.WorkManagerHelper
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
 
 //@OptIn(ExperimentalMaterial3Api::class)
@@ -36,16 +37,25 @@ class MainActivity : ComponentActivity() {
 
         val dao = MainApplication.threeGenDatabase.getThreeGenDao()
         val firestore =
-            MainApplication.instance.let { com.google.firebase.firestore.FirebaseFirestore.getInstance() }
-        val auth = com.google.firebase.auth.FirebaseAuth.getInstance()
+            MainApplication.instance.let { FirebaseFirestore.getInstance() }
+        val auth = FirebaseAuth.getInstance()
 
         val viewModel: ThreeGenViewModel by viewModels { ThreeGenViewModelFactory(dao, firestore) }
         val authViewModel: AuthViewModel by viewModels { AuthViewModelFactory(auth) }
 
-        // ✅ Schedule periodic sync on network availability
-        WorkManagerHelper.schedulePeriodicSync(applicationContext)
-        Log.d("Sync", "🔥 From MainActivity Periodic Sync Scheduled")
+        val sharedPreferences = getSharedPreferences("app_prefs", MODE_PRIVATE)
+        //sharedPreferences.edit().putBoolean("isFirstRun", true).apply()
+        val isFirstRun = sharedPreferences.getBoolean("isFirstRun", true)
+        val lastSyncTime = sharedPreferences.getLong("last_sync_time", 0L)
+        // 🔥 Get current user ID from Firebase Authentication
+        val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: "Unknown"
 
+        // ✅ Schedule periodic sync on network availability
+        //WorkManagerHelper.schedulePeriodicSync(context = applicationContext,timeIntervalInMinute = 15)
+        if (!isFirstRun and !viewModel.isSyncedInSession) {
+            WorkManagerHelper.chainSyncJobs(context = applicationContext, lastSyncTime = lastSyncTime, currentUserId = currentUserId)
+            viewModel.isSyncedInSession = true
+        }
         setContent {
             ThreeGenTheme {
                 val context = LocalContext.current
@@ -60,10 +70,10 @@ class MainActivity : ComponentActivity() {
                 // WorkManagerHelper.schedulePeriodicSync(applicationContext)
 
                 // ✅ Trigger immediate sync on app start
-                WorkManagerHelper.scheduleImmediateSync(applicationContext)
+               // WorkManagerHelper.scheduleImmediateSync(applicationContext)
 
                 // ✅ Observe sync result using the work ID // syncRequest.id
-                LaunchedEffect(Unit) {
+                LaunchedEffect(true) {
                     WorkManagerHelper.observeSyncResult(
                         context,
                         this@MainActivity
@@ -91,26 +101,25 @@ class MainActivity : ComponentActivity() {
             }
         }
         // ✅ Trigger Firestore sync on fresh install
-        val sharedPreferences = getSharedPreferences("app_prefs", MODE_PRIVATE)
+        //val sharedPreferences = getSharedPreferences("app_prefs", MODE_PRIVATE)
         //sharedPreferences.edit().putBoolean("isFirstRun", true).apply()
-        val isFirstRun = sharedPreferences.getBoolean("isFirstRun", true)
-        val lastSyncTime = sharedPreferences.getLong("last_sync_time", 0L)
+        //val isFirstRun = sharedPreferences.getBoolean("isFirstRun", true)
+        //val lastSyncTime = sharedPreferences.getLong("last_sync_time", 0L)
         // 🔥 Get current user ID from Firebase Authentication
-        val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: "Unknown"
-        Log.d(
-            "FirestoreSync",
-            "🔥 From MainActivity isFirstRun: $isFirstRun, lastSyncTime: $lastSyncTime"
-        )
+        //val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: "Unknown"
+        //Log.d( "FirestoreSync", "🔥 From MainActivity isFirstRun: $isFirstRun, lastSyncTime: $lastSyncTime" )
 
         if (isFirstRun) {
             // ✅ First-time sync → Clear local DB
-            viewModel.syncFirestoreToRoom(0L, isFirstRun = true, currentUserId)
+            viewModel.syncFirestoreToRoom(0L, isFirstRun = true, currentUserId = currentUserId, {message ->
+                Log.d("FirestoreSync", "🔥 From MainActivity isFirstRun: $isFirstRun, firsttime sync completed with message: $message") }
+            )
 
             // ✅ Mark first run as complete
             sharedPreferences.edit().putBoolean("isFirstRun", false).apply()
         } else {
             // ✅ Normal sync → Only update modified members
-            viewModel.syncFirestoreToRoom(lastSyncTime, isFirstRun = false, currentUserId)
+            //viewModel.syncFirestoreToRoom(lastSyncTime, isFirstRun = false, currentUserId)
         }
 
         // ✅ Store the current time as the new sync timestamp

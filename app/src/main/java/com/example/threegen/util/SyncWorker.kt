@@ -23,7 +23,6 @@ class SyncWorker(
 
     override suspend fun doWork(): Result {
         val viewModel = ThreeGenViewModel.getInstance(applicationContext)
-
         val syncTime = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
         Log.d("ThreeGenSync", "🔥 From SyncWorker Sync started at: $syncTime")
 

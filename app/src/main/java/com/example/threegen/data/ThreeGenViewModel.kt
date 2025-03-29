@@ -495,22 +495,26 @@ class ThreeGenViewModel(
      * 3. Inserts all members without relationships.
      * 4. Updates parent and spouse IDs using the fetched list.
      */
-    fun syncFirestoreToRoom(lastSyncTime: Long, isFirstRun: Boolean = false, currentUserId: String) {
-
+    fun syncFirestoreToRoom(lastSyncTime: Long, isFirstRun: Boolean = false, currentUserId: String, callback: (String) -> Unit) {
+        val currentUserId1 = auth.currentUser?.uid
+        if (currentUserId1 == null) {
+            val message = "Not authenticated. Sync action skipped."
+            callback(message)
+            return
+        }
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                Log.d("FirestoreSync", "🔥 From viewmodel.syncFirestoreToRoom Syncing Firestore data to Room (lastSyncTime: $lastSyncTime, First Run: $isFirstRun)")
+                //Log.d("FirestoreSync", "🔥 From viewmodel.syncFirestoreToRoom Syncing Firestore data to Room (lastSyncTime: $lastSyncTime, First Run: $isFirstRun)")
 
                 // ✅ Fetch only modified members since the last sync and not created by the same user
-                val members = repository.syncFirestoreToRoom(lastSyncTime, currentUserId)
-                Log.d("FirestoreSync", "✅ From viewmodel.syncFirestoreToRoom Fetched ${members.size} modified members")
+                val members = repository.syncFirestoreToRoom(lastSyncTime, currentUserId1)
+                //Log.d("FirestoreSync", "✅ From viewmodel.syncFirestoreToRoom Fetched ${members.size} modified members")
 
                 if (members.isNotEmpty()) {
-
                     if (isFirstRun) {
                         // 🔥 First App Start → Clear local Room DB
                         dao.clearAll()
-                        Log.d("FirestoreSync", "✅ From viewmodel.syncFirestoreToRoom Cleared local Room DB before inserting new data")
+                        Log.d("viewmodel.syncFirestoreToRoom", "✅ From viewmodel.syncFirestoreToRoom Cleared local Room DB before inserting new data")
                     }
 
                     // 🔥 Step 1: Insert all members WITHOUT relationships
@@ -518,17 +522,18 @@ class ThreeGenViewModel(
                         member.copy(parentID = null, spouseID = null)  // Remove relationships temporarily
                     }
                     dao.insertOrUpdateMembers(membersWithoutRelationships)
-                    Log.d("FirestoreSync", "✅ From viewmodel.syncFirestoreToRoom Inserted ${members.size} members without relationships")
+                    Log.d("viewmodel.syncFirestoreToRoom", "✅ From viewmodel.syncFirestoreToRoom Inserted ${members.size} members without relationships")
 
                     // 🔥 Step 2: Update parent and spouse IDs
                     updateRelationshipsInRoom(members)
-
+                    callback("✅ $members synced from Firestore to Room successfully")
                 } else {
-                    Log.d("FirestoreSync", "✅ From viewmodel.syncFirestoreToRoom No modified members found")
+                    Log.d("viewmodel.syncFirestoreToRoom", "✅ From viewmodel.syncFirestoreToRoom No modified members found")
+                    callback("No members to sync")
                 }
 
             } catch (e: Exception) {
-                Log.e("FirestoreSync", "❌ viewmodel.syncFirestoreToRoom Sync failed: ${e.message}", e)
+                Log.e("viewmodel.syncFirestoreToRoom", "❌ viewmodel.syncFirestoreToRoom Sync failed: ${e.message}", e)
             }
         }
     }

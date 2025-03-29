@@ -49,7 +49,7 @@ class ThreeGenRepository(private val threeGenDao: ThreeGenDao) {
             }
 
             val snapshot = query.get().await()
-            Log.d("FirestoreSync", "✅ From Repository.syncFirestoreToRoom Query snapshot size: ${snapshot.size()}")
+            //Log.d("FirestoreSync", "✅ From Repository.syncFirestoreToRoom Query snapshot size: ${snapshot.size()}")
 
             if (!snapshot.isEmpty) {
                 val members = snapshot.documents.map { doc ->
@@ -73,16 +73,16 @@ class ThreeGenRepository(private val threeGenDao: ThreeGenDao) {
                         createdBy = doc.getString("createdBy") ?: "Unknown"
                     )
                 }
-                Log.d("FirestoreSync", "✅ From Repository.syncFirestoreToRoom Query members size: ${members.size}")
+                Log.d("Repository.syncFirestoreToRoom", "✅ From Repository.syncFirestoreToRoom Query members size: ${members.size}")
                 //returns
                 members
             } else {
-                Log.d("FirestoreSync", "✅ From Repository.syncFirestoreToRoom No modified members found since last sync")
+                Log.d("Repository.syncFirestoreToRoom", "✅ From Repository.syncFirestoreToRoom No modified members found since last sync")
                 //returns
                 emptyList()
             }
         } catch (e: Exception) {
-            Log.e("FirestoreSync", "❌ From Repository.syncFirestoreToRoom Sync failed: ${e.message}", e)
+            Log.e("Repository.syncFirestoreToRoom", "❌ From Repository.syncFirestoreToRoom Sync failed: ${e.message}", e)
             emptyList()
         }
     }

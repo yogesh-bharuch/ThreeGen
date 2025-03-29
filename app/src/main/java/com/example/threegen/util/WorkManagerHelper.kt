@@ -25,7 +25,7 @@ object WorkManagerHelper {
         fun chainSyncJobs(context: Context, lastSyncTime: Long, currentUserId: String) {
             val workManager = WorkManager.getInstance(context)
             val inputData = workDataOf("LAST_SYNC_TIME" to lastSyncTime, "CURRENT_USER_ID" to currentUserId)
-
+            //Log.d("FirestoreSync", "🔥 From WorkManagerHelper.chainSyncJobs started")
             val syncLocalToFirestoreWork = OneTimeWorkRequestBuilder<SyncLocalToFirestoreWorker>()
                 .addTag("SyncLocalToFirestore")
                 .build()
@@ -39,7 +39,7 @@ object WorkManagerHelper {
                 .then(syncFirestoreToRoomWork)
                 .enqueue()
 
-            Log.d("WorkManagerHelper", "🔥 Chained sync jobs enqueued")
+            //Log.d("FirestoreSync", "🔥 Chained sync jobs enqueued")
         }
 
     /**
@@ -124,14 +124,16 @@ object WorkManagerHelper {
     /**
      * ✅ Schedules periodic sync (every 15 minutes) and returns the WorkRequest.
      */ //: WorkRequest
-    fun schedulePeriodicSync(context: Context, timeIntervalInMinute : Long = 720) {
+    fun schedulePeriodicSync(context: Context, timeIntervalInMinute : Long = 60) {
+        Log.d("FirestoreSync", "🔥 From WorkManagerHelper.PeriodicSync start")
         val constraints = Constraints.Builder()
             .setRequiredNetworkType(NetworkType.CONNECTED)
             .setRequiresBatteryNotLow(true)
             .setRequiresCharging(false)
             .build()
 
-        val periodicSyncRequest = PeriodicWorkRequestBuilder<SyncWorker>(
+        //val periodicSyncRequest = PeriodicWorkRequestBuilder<SyncWorker>(
+        val periodicSyncRequest = PeriodicWorkRequestBuilder<SyncLocalToFirestoreWorker>(
             timeIntervalInMinute, TimeUnit.MINUTES
         )
             .setConstraints(constraints)
@@ -147,7 +149,7 @@ object WorkManagerHelper {
             ExistingPeriodicWorkPolicy.KEEP,
             periodicSyncRequest
         )
-        Log.d("ThreeGenSync", "🔥 From WorkManagerHelper Periodic sync scheduled successfully")
+        Log.d("FirestoreSync", "🔥 From WorkManagerHelper.Periodicsync : scheduled successfully")
 
         // ✅ Return the WorkRequest for observation
         //return periodicSyncRequest
