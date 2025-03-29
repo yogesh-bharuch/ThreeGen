@@ -95,14 +95,10 @@ object WorkManagerHelper {
                     if (workInfo.state == WorkInfo.State.SUCCEEDED) {
                         val resultMessage =
                             workInfo.outputData.getString("SYNC_RESULT") ?: "Sync completed"
-                        Log.d(
-                            "ThreeGenSync",
-                            "🔥 From WorkManagerHelper Manual Sync Result: $resultMessage"
-                        )
+                        Log.d("ThreeGenSync", "🔥 From WorkManagerHelper Manual Sync Result: $resultMessage")
                         onResult(resultMessage)
                     }
                 }
-
             }
         // ✅ Observe periodic sync results
         workManager.getWorkInfosByTagLiveData("PeriodicSync").observe(lifecycleOwner) { workInfos ->
@@ -124,19 +120,29 @@ object WorkManagerHelper {
     /**
      * ✅ Schedules periodic sync (every 15 minutes) and returns the WorkRequest.
      */ //: WorkRequest
-    fun schedulePeriodicSync(context: Context, timeIntervalInMinute : Long = 60) {
+    fun schedulePeriodicSync(
+        context: Context,
+        timeIntervalInMinute: Long = 60,
+        lastSyncTime: Long = 0L,         // Add last sync time
+        currentUserId: String = "Unknown" // Add current user ID
+    ) {
         Log.d("FirestoreSync", "🔥 From WorkManagerHelper.PeriodicSync start")
         val constraints = Constraints.Builder()
             .setRequiredNetworkType(NetworkType.CONNECTED)
             .setRequiresBatteryNotLow(true)
             .setRequiresCharging(false)
             .build()
+        val inputData = workDataOf(
+            "LAST_SYNC_TIME" to lastSyncTime,
+            "CURRENT_USER_ID" to currentUserId
+        )
 
         //val periodicSyncRequest = PeriodicWorkRequestBuilder<SyncWorker>(
-        val periodicSyncRequest = PeriodicWorkRequestBuilder<SyncLocalToFirestoreWorker>(
+        val periodicSyncRequest = PeriodicWorkRequestBuilder<SyncFirestoreToRoomWorker>(
             timeIntervalInMinute, TimeUnit.MINUTES
         )
             .setConstraints(constraints)
+            .setInputData(inputData)
             .setBackoffCriteria(
                 BackoffPolicy.EXPONENTIAL,
                 30, TimeUnit.SECONDS
@@ -149,7 +155,7 @@ object WorkManagerHelper {
             ExistingPeriodicWorkPolicy.KEEP,
             periodicSyncRequest
         )
-        Log.d("FirestoreSync", "🔥 From WorkManagerHelper.Periodicsync : scheduled successfully")
+        Log.d("FirestoreSync", "🔥 From WorkManagerHelper.Periodicsync : scheduled successfully at every $timeIntervalInMinute minutes")
 
         // ✅ Return the WorkRequest for observation
         //return periodicSyncRequest

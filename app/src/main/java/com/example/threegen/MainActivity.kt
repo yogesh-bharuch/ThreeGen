@@ -27,7 +27,6 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
 
-//@OptIn(ExperimentalMaterial3Api::class)
 class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -35,44 +34,42 @@ class MainActivity : ComponentActivity() {
 
         enableEdgeToEdge()
 
+        // ✅ Initialize dependencies
         val dao = MainApplication.threeGenDatabase.getThreeGenDao()
-        val firestore =
-            MainApplication.instance.let { FirebaseFirestore.getInstance() }
+        val firestore = MainApplication.instance.let { FirebaseFirestore.getInstance() }
         val auth = FirebaseAuth.getInstance()
 
         val viewModel: ThreeGenViewModel by viewModels { ThreeGenViewModelFactory(dao, firestore) }
         val authViewModel: AuthViewModel by viewModels { AuthViewModelFactory(auth) }
 
         val sharedPreferences = getSharedPreferences("app_prefs", MODE_PRIVATE)
-        //sharedPreferences.edit().putBoolean("isFirstRun", true).apply()
         val isFirstRun = sharedPreferences.getBoolean("isFirstRun", true)
         val lastSyncTime = sharedPreferences.getLong("last_sync_time", 0L)
-        // 🔥 Get current user ID from Firebase Authentication
+
+        // ✅ Get current user ID from Firebase Authentication
         val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: "Unknown"
 
-        // ✅ Schedule periodic sync on network availability
-        //WorkManagerHelper.schedulePeriodicSync(context = applicationContext,timeIntervalInMinute = 15)
-        if (!isFirstRun and !viewModel.isSyncedInSession) {
+        // ✅ Trigger chained sync jobs on app start (local → Firestore → Room)
+        if (!isFirstRun && !viewModel.isSyncedInSession) {
             WorkManagerHelper.chainSyncJobs(context = applicationContext, lastSyncTime = lastSyncTime, currentUserId = currentUserId)
             viewModel.isSyncedInSession = true
         }
+
         setContent {
             ThreeGenTheme {
                 val context = LocalContext.current
                 val scope = rememberCoroutineScope()
                 val snackbarHostState = SnackbarManager.getSnackbarHostState()
-
                 val navController = rememberNavController()
 
                 RequestPermissions(activity = this@MainActivity)
 
-                // ✅ Schedule periodic background sync
-                // WorkManagerHelper.schedulePeriodicSync(applicationContext)
+                // ✅ Schedule periodic Firestore-to-Room sync (every 15 min) in the background
+                LaunchedEffect(true) {
+                    WorkManagerHelper.schedulePeriodicSync(context, timeIntervalInMinute = 1)
+                }
 
-                // ✅ Trigger immediate sync on app start
-               // WorkManagerHelper.scheduleImmediateSync(applicationContext)
-
-                // ✅ Observe sync result using the work ID // syncRequest.id
+                // ✅ Observe and display sync results
                 LaunchedEffect(true) {
                     WorkManagerHelper.observeSyncResult(
                         context,
@@ -88,7 +85,6 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     snackbarHost = { SnackbarHost(snackbarHostState) }
                 ) { innerPadding ->
-
                     AppNavigation(
                         viewModel = viewModel,
                         authViewModel = authViewModel,
@@ -100,30 +96,82 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
-        // ✅ Trigger Firestore sync on fresh install
-        //val sharedPreferences = getSharedPreferences("app_prefs", MODE_PRIVATE)
-        //sharedPreferences.edit().putBoolean("isFirstRun", true).apply()
-        //val isFirstRun = sharedPreferences.getBoolean("isFirstRun", true)
-        //val lastSyncTime = sharedPreferences.getLong("last_sync_time", 0L)
-        // 🔥 Get current user ID from Firebase Authentication
-        //val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: "Unknown"
-        //Log.d( "FirestoreSync", "🔥 From MainActivity isFirstRun: $isFirstRun, lastSyncTime: $lastSyncTime" )
 
+        // ✅ First-time sync: Firestore → Room
         if (isFirstRun) {
-            // ✅ First-time sync → Clear local DB
-            viewModel.syncFirestoreToRoom(0L, isFirstRun = true, currentUserId = currentUserId, {message ->
-                Log.d("FirestoreSync", "🔥 From MainActivity isFirstRun: $isFirstRun, firsttime sync completed with message: $message") }
-            )
+            viewModel.syncFirestoreToRoom(
+                lastSyncTime = 0L,
+                isFirstRun = true,
+                currentUserId = currentUserId
+            ) { message ->
+                Log.d("FirestoreSync", "🔥 First-time sync completed: $message")
+            }
 
             // ✅ Mark first run as complete
             sharedPreferences.edit().putBoolean("isFirstRun", false).apply()
-        } else {
-            // ✅ Normal sync → Only update modified members
-            //viewModel.syncFirestoreToRoom(lastSyncTime, isFirstRun = false, currentUserId)
         }
 
-        // ✅ Store the current time as the new sync timestamp
+        // ✅ Store current time as new sync timestamp
         val currentSyncTime = System.currentTimeMillis()
         sharedPreferences.edit().putLong("last_sync_time", currentSyncTime).apply()
     }
 }
+
+
+
+/*
+✅ Key Changes and Explanation:
+Immediate Local-to-Firestore Sync on App Start:
+
+Added WorkManagerHelper.chainSyncJobs() inside onCreate() to trigger the sync immediately on app launch.
+
+This ensures any local changes are pushed to Firestore first, followed by Firestore-to-Room sync.
+
+First-Time Sync Handling:
+
+On the first run, it performs a full Firestore-to-Room sync.
+
+Marks isFirstRun = false in SharedPreferences after the first sync is complete.
+
+Ensures a clean Room database is filled with Firestore data initially.
+
+Periodic Firestore-to-Room Sync:
+
+Added WorkManagerHelper.schedulePeriodicSync() in LaunchedEffect to ensure periodic Firestore-to-Room sync in the background.
+
+This sync occurs every 15 minutes, even if the app is not running, ensuring the local database is always relatively fresh.
+
+Sync Observing and Snackbar Notifications:
+
+Added WorkManagerHelper.observeSyncResult() to observe and display sync results in a Snackbar.
+
+Improves visibility of sync results for better debugging and tracking.
+
+✅ Recommendations:
+Error Handling and Logging:
+
+Improve the logging mechanism by adding more detailed logs with timestamps and specific operations.
+
+Display more detailed error messages in the Snackbar for better debugging.
+
+Optimize Sync Frequency:
+
+You may want to experiment with the interval for periodic sync.
+
+If 15 minutes feels too frequent, consider increasing it to 30 or 60 minutes to reduce Firestore reads and optimize battery usage.
+
+User-Initiated Sync:
+
+Add a manual sync button somewhere in the app to allow the user to force a sync when needed.
+
+✅ This implementation ensures:
+
+Immediate local-to-Firestore sync on app start.
+
+Full Firestore-to-Room sync during the first run.
+
+Periodic Firestore-to-Room sync in the background.
+
+Efficient and consistent data sync across the app. 🚀
+
+* */
