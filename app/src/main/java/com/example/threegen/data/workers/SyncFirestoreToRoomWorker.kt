@@ -23,7 +23,7 @@ class SyncFirestoreToRoomWorker(
         val syncTime = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
         val lastSyncTime = inputData.getLong("LAST_SYNC_TIME", 0L)
         val currentUserId = inputData.getString("CURRENT_USER_ID")
-        Log.d("FirestoreSync", "🔥 From SyncFirestoreToRoomWorker.doWork last sync time is : $lastSyncTime and currentUserId is $currentUserId")
+        //Log.d("FirestoreSync", "🔥 From SyncFirestoreToRoomWorker.doWork last sync time is : $lastSyncTime and currentUserId is $currentUserId")
         //val currentUserId = inputData.getString("CURRENT_USER_ID") ?: "Unknown"
         Log.d("FirestoreSync", "🔥 From SyncFirestoreToRoomWorker.doWork Worker started at: $syncTime")
         Log.d("FirestoreSync", "📅 From SyncFirestoreToRoomWorker.doWork Last Sync Time: $lastSyncTime, User ID: $currentUserId")

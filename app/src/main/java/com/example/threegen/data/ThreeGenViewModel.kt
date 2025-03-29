@@ -300,7 +300,7 @@ class ThreeGenViewModel(
     val syncMessage: StateFlow<String> = _syncMessage
 
     fun syncLocalDataToFirestore(callback: (String) -> Unit) {
-        Log.d("SyncFlow", "🔥 From ViewModel: syncLocalDataToFirestore called")
+        Log.d("SyncFlow", "🔥 Triggering sync from ViewModel")
 
         val currentUserId = auth.currentUser?.uid
         if (currentUserId == null) {
@@ -309,64 +309,9 @@ class ThreeGenViewModel(
             return
         }
 
-        val messages = mutableListOf<String>()
-
-        // Launch the coroutine using viewModelScope (if inside ViewModel)
         viewModelScope.launch {
-            try {
-                // ✅ Fetch all members mark for deleted members will not fetch
-                val unsyncedMembers  = withContext(Dispatchers.IO) {
-                    repository.getUnsyncedMembers()  // ✅ Optimized query
-                }
-
-                // ✅ Fetch soft-deleted members
-                val deletedMembers = withContext(Dispatchers.IO) {
-                    repository.getMarkAsDeletedMembers()
-                }
-
-                //  ✅ if no unsynced members or no deleted members, return
-                if (unsyncedMembers.isEmpty() && deletedMembers.isEmpty()) {
-                    val noSyncMessage = "No members to sync"
-                    Log.d("SyncFlow", "🔥 $noSyncMessage")
-                    callback(noSyncMessage)
-                    return@launch
-                }
-
-                // ✅ Delete members marked as deleted
-                val deleteTasks = if (deletedMembers.isNotEmpty()) {
-                    deletedMembers.map { member ->
-                        async { deleteFirestoreMember(member, messages) }
-                    }
-                } else { emptyList() }
-
-                // ✅ Remove references as parent or spouse for deleted members from firestore, local database refrential intigrity takes care
-                val cleanUpTasks = if (deletedMembers.isNotEmpty()) {
-                    deletedMembers.map { member ->
-                        async { removeReferencesToDeletedMember(member.id, messages) }
-                    }
-                } else { emptyList() }
-
-                // ✅ Sync unsynced members to Firestore updated members
-                val syncTasks = if (unsyncedMembers.isNotEmpty()) {
-                    unsyncedMembers.map { member ->
-                        async { updateFirestore(member, messages) }
-                    }
-                } else { emptyList() }
-
-                // ✅ Wait for all operations to complete
-                deleteTasks.awaitAll()
-                cleanUpTasks.awaitAll()
-                syncTasks.awaitAll()
-
-                // Prepare final result message
-                val resultMessage = messages.joinToString("\n").ifEmpty { "No members to sync" }
-                Log.d("SyncFlow", "🔥 Final Sync Message: $resultMessage")
-
-                // Trigger the callback with the final result
-                callback(resultMessage)
-            } catch (e: Exception) {
-                Log.e("SyncFlow", "❌ Error during sync operation: ${e.message}", e)
-                callback("❌ Error during sync: ${e.message}")
+            repository.syncLocalDataToFirestore { result ->
+                callback(result)
             }
         }
     }
@@ -374,7 +319,7 @@ class ThreeGenViewModel(
     /**
      * Syncs a `ThreeGen` member to Firestore, including all fields.
      * Updates the local Room sync status and `updatedAt` timestamp upon successful Firestore sync.
-     */
+
     private suspend fun updateFirestore(threeGen: ThreeGen, messages: MutableList<String>) {
         Log.d("FirestoreViewModel", "🔥 Updating member in Firestore: ${threeGen.firstName}")
 
@@ -485,7 +430,7 @@ class ThreeGenViewModel(
         }
     }
     // completed Method to sync local data to Firestore---------------------------------------------------------------------------------------------------------------
-
+    */
     /**
      * Syncs Firestore data to the local Room database.
      *
@@ -495,7 +440,12 @@ class ThreeGenViewModel(
      * 3. Inserts all members without relationships.
      * 4. Updates parent and spouse IDs using the fetched list.
      */
-    fun syncFirestoreToRoom(lastSyncTime: Long, isFirstRun: Boolean = false, currentUserId: String, callback: (String) -> Unit) {
+    fun syncFirestoreToRoom(
+        lastSyncTime: Long,
+        isFirstRun: Boolean = false,
+        currentUserId: String,
+        callback: (String) -> Unit
+    ) {
         val currentUserId1 = auth.currentUser?.uid
         if (currentUserId1 == null) {
             val message = "Not authenticated. Sync action skipped."

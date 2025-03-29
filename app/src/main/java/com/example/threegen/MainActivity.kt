@@ -52,7 +52,7 @@ class MainActivity : ComponentActivity() {
         // ✅ Trigger chained sync jobs on app start (local → Firestore → Room)
         if (!isFirstRun && !viewModel.isSyncedInSession) {
             Log.d("FirestoreSync", "From Mainactivity.chainSyncJobs Triggering chained sync jobs")
-            WorkManagerHelper.chainSyncJobs(context = applicationContext, lastSyncTime = lastSyncTime, currentUserId = currentUserId)
+            WorkManagerHelper.chainSyncOnStartup(context = applicationContext, lastSyncTime = lastSyncTime, currentUserId = currentUserId)
             viewModel.isSyncedInSession = true
         }
 
@@ -67,7 +67,7 @@ class MainActivity : ComponentActivity() {
 
                 // ✅ Schedule periodic Firestore-to-Room sync (every 15 min) in the background
                 LaunchedEffect(true) {
-                    Log.d("FirestoreSync", "From Mainactivity.schedulePeriodicSync sync jobs")
+                    //Log.d("FirestoreSync", "From Mainactivity.schedulePeriodicSync sync jobs")
                     //WorkManagerHelper.schedulePeriodicSync(context, timeIntervalInMinute = 180)
                 }
 
