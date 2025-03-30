@@ -68,7 +68,7 @@ class MainActivity : ComponentActivity() {
                 // ✅ Schedule periodic Firestore-to-Room sync (every 15 min) in the background
                 LaunchedEffect(true) {
                     //Log.d("FirestoreSync", "From Mainactivity.schedulePeriodicSync sync jobs")
-                    //WorkManagerHelper.schedulePeriodicSync(context, timeIntervalInMinute = 180)
+                    WorkManagerHelper.schedulePeriodicSync(context, timeIntervalInMinutes = 15)
                 }
 
                 // ✅ Observe and display sync results
@@ -99,19 +99,21 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        // ✅ First-time sync: Firestore → Room
+        // ✅ First-time sync → Use WorkManager instead of direct call
         if (isFirstRun) {
-            viewModel.syncFirestoreToRoom(
-                lastSyncTime = 0L,
-                isFirstRun = true,
+            Log.d("FirestoreSync", "🔥 First-time sync triggered")
+
+            // 🔥 Trigger full sync with WorkManager
+            WorkManagerHelper.chainSyncOnStartup(
+                context = applicationContext,
+                lastSyncTime = 0L,      // First run → use 0L to fetch all records
                 currentUserId = currentUserId
-            ) { message ->
-                Log.d("FirestoreSync", "🔥 First-time sync completed: $message")
-            }
+            )
 
             // ✅ Mark first run as complete
             sharedPreferences.edit().putBoolean("isFirstRun", false).apply()
         }
+
 
         // ✅ Store current time as new sync timestamp
         val currentSyncTime = System.currentTimeMillis()

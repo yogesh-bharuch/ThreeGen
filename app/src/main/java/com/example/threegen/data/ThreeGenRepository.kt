@@ -54,58 +54,37 @@ class ThreeGenRepository(private val threeGenDao: ThreeGenDao) {
         return returnedRows
     }
 
+
     /**
-     * 🔥 Fetches only (modified members since the last sync + not created by the same user) and maps them to `ThreeGen`.
-     * Sets `deleted = false` by default since Firestore does not have this field.
+     * Fetches modified members from Firestore since the last sync time.
+     *
+     * @param lastSyncTime The last sync timestamp.
+     * @param currentUserId The ID of the current user to avoid syncing self-created records.
+     * @return A list of modified `ThreeGen` members.
      */
-    suspend fun syncFirestoreToRoom(lastSyncTime: Long, currentUserId: String): List<ThreeGen> {
-        return try {
-            val query = if (lastSyncTime > 0) { collectionRef
+    private suspend fun syncFirestoreToRoom(
+        lastSyncTime: Long,
+        currentUserId: String
+    ): List<ThreeGen> = withContext(Dispatchers.IO) {
+        val members = mutableListOf<ThreeGen>()
+        try {
+            val query = firestore.collection("ThreeGenMembers")
                 .whereGreaterThan("updatedAt", lastSyncTime)
                 .whereNotEqualTo("createdBy", currentUserId)
-            } else {
-                collectionRef  // First-time sync: fetch all members
-            }
+                .get()
+                .await()
 
-            val snapshot = query.get().await()
-            //Log.d("FirestoreSync", "✅ From Repository.syncFirestoreToRoom Query snapshot size: ${snapshot.size()}")
-
-            if (!snapshot.isEmpty) {
-                val members = snapshot.documents.map { doc ->
-                    ThreeGen(
-                        id = doc.getString("id") ?: "",
-                        firstName = doc.getString("firstName") ?: "",
-                        middleName = doc.getString("middleName") ?: "",
-                        lastName = doc.getString("lastName") ?: "",
-                        town = doc.getString("town") ?: "",
-                        shortName = doc.getString("shortName") ?: "",
-                        isAlive = doc.getBoolean("isAlive") ?: true,
-                        childNumber = doc.getLong("childNumber")?.toInt(),
-                        comment = doc.getString("comment"),
-                        imageUri = doc.getString("imageUri"),
-                        syncStatus = SyncStatus.SYNCED,
-                        deleted = false,  // ✅ Firestore does NOT have this field → set to `false`
-                        parentID = doc.getString("parentID"),
-                        spouseID = doc.getString("spouseID"),
-                        updatedAt = doc.getLong("updatedAt") ?: System.currentTimeMillis(),
-                        createdAt = doc.getLong("createdAt") ?: System.currentTimeMillis(),
-                        createdBy = doc.getString("createdBy") ?: "Unknown"
-                    )
+            for (document in query.documents) {
+                val member = document.toObject(ThreeGen::class.java)
+                if (member != null) {
+                    members.add(member)
                 }
-                Log.d("Repository.syncFirestoreToRoom", "✅ From Repository.syncFirestoreToRoom Query members size: ${members.size}")
-                //returns
-                members
-            } else {
-                Log.d("Repository.syncFirestoreToRoom", "✅ From Repository.syncFirestoreToRoom No modified members found since last sync")
-                //returns
-                emptyList()
             }
         } catch (e: Exception) {
-            Log.e("Repository.syncFirestoreToRoom", "❌ From Repository.syncFirestoreToRoom Sync failed: ${e.message}", e)
-            emptyList()
+            Log.e("FirestoreSync", "❌ Failed to fetch modified Firestore members: ${e.message}", e)
         }
+        return@withContext members
     }
-
 
 
     /**
@@ -404,5 +383,145 @@ class ThreeGenRepository(private val threeGenDao: ThreeGenDao) {
         }
     }
 
-}
 
+    //-------- Firestore-->Room starts
+    /**
+     * Syncs Firestore data to the local Room database.
+     *
+     * @param lastSyncTime The last sync timestamp to fetch modified members.
+     * @param isFirstRun Boolean flag indicating if it is the first app run.
+     * @param currentUserId The ID of the current Firebase user.
+     * @param callback A callback function to return the result message.
+     */
+    suspend fun syncFirestoreToRoom(
+        lastSyncTime: Long,
+        isFirstRun: Boolean = false,
+        currentUserId: String,
+        callback: (String) -> Unit
+    ) = withContext(Dispatchers.IO) {
+        try {
+            Log.d("FirestoreSync", "🔥 From Repository.syncFirestoreToRoom: Syncing Firestore → Room...")
+
+            // ✅ Fetch modified members from Firestore
+            val members = fetchModifiedFirestoreMembers(lastSyncTime, currentUserId)
+            Log.d("FirestoreSync", "✅ From Repository.syncFirestoreToRoom: Fetched ${members.size} modified members")
+
+            if (members.isNotEmpty()) {
+                if (isFirstRun) {
+                    // 🔥 First run → Clear Room DB
+                    threeGenDao.clearAll()
+                    Log.d("FirestoreSync", "✅ From Repository.syncFirestoreToRoom: Cleared local Room DB")
+                }
+
+                // 🔥 Step 1: Insert all members WITHOUT relationships
+                val membersWithoutRelationships = members.map { member ->
+                    member.copy(parentID = null, spouseID = null)  // Temporarily remove relationships
+                }
+                threeGenDao.insertOrUpdateMembers(membersWithoutRelationships)
+                Log.d("FirestoreSync", "✅ From Repository.syncFirestoreToRoom: Inserted ${members.size} members without relationships")
+
+                // 🔥 Step 2: Update relationships in Room
+                updateRelationshipsInRoom(members)
+
+                callback("✅ ${members.size} members synced from Firestore to Room successfully")
+            } else {
+                Log.d("FirestoreSync", "✅ From Repository.syncFirestoreToRoom: No modified members found")
+                callback("No members to sync")
+            }
+
+        } catch (e: Exception) {
+            Log.e("FirestoreSync", "❌ From Repository.syncFirestoreToRoom: Sync failed: ${e.message}", e)
+            callback("❌ Sync failed: ${e.message}")
+        }
+    }
+
+    /**
+     * 🔥 Fetches only (modified members since the last sync + not created by the same user) and maps them to `ThreeGen`.
+     * Sets `deleted = false` by default since Firestore does not have this field.
+     */
+    private suspend fun fetchModifiedFirestoreMembers(lastSyncTime: Long, currentUserId: String): List<ThreeGen> {
+        return try {
+            val query = if (lastSyncTime > 0) { collectionRef
+                .whereGreaterThan("updatedAt", lastSyncTime)
+                .whereNotEqualTo("createdBy", currentUserId)
+            } else {
+                collectionRef  // First-time sync: fetch all members
+            }
+
+            val snapshot = query.get().await()
+            //Log.d("FirestoreSync", "✅ From Repository.syncFirestoreToRoom Query snapshot size: ${snapshot.size()}")
+
+            if (!snapshot.isEmpty) {
+                val members = snapshot.documents.map { doc ->
+                    ThreeGen(
+                        id = doc.getString("id") ?: "",
+                        firstName = doc.getString("firstName") ?: "",
+                        middleName = doc.getString("middleName") ?: "",
+                        lastName = doc.getString("lastName") ?: "",
+                        town = doc.getString("town") ?: "",
+                        shortName = doc.getString("shortName") ?: "",
+                        isAlive = doc.getBoolean("isAlive") ?: true,
+                        childNumber = doc.getLong("childNumber")?.toInt(),
+                        comment = doc.getString("comment"),
+                        imageUri = doc.getString("imageUri"),
+                        syncStatus = SyncStatus.SYNCED,
+                        deleted = false,  // ✅ Firestore does NOT have this field → set to `false`
+                        parentID = doc.getString("parentID"),
+                        spouseID = doc.getString("spouseID"),
+                        updatedAt = doc.getLong("updatedAt") ?: System.currentTimeMillis(),
+                        createdAt = doc.getLong("createdAt") ?: System.currentTimeMillis(),
+                        createdBy = doc.getString("createdBy") ?: "Unknown"
+                    )
+                }
+                Log.d("Repository.syncFirestoreToRoom", "✅ From Repository.syncFirestoreToRoom Query members size: ${members.size}")
+                //returns
+                members
+            } else {
+                Log.d("Repository.syncFirestoreToRoom", "✅ From Repository.syncFirestoreToRoom No modified members found since last sync")
+                //returns
+                emptyList()
+            }
+        } catch (e: Exception) {
+            Log.e("Repository.syncFirestoreToRoom", "❌ From Repository.syncFirestoreToRoom Sync failed: ${e.message}", e)
+            emptyList()
+        }
+    }
+
+    /**
+     * Updates parent and spouse relationships in Room.
+     *
+     * @param members List of `ThreeGen` members.
+     */
+    private suspend fun updateRelationshipsInRoom(members: List<ThreeGen>) = withContext(Dispatchers.IO) {
+        try {
+            Log.d("FirestoreSync", "🔥 From Repository.updateRelationshipsInRoom: Updating relationships...")
+
+            var updatedCount = 0
+
+            members.forEach { member ->
+                if (member.parentID != null || member.spouseID != null) {
+
+                    // ✅ Find the corresponding Room member by ID
+                    val localMember = threeGenDao.getMemberByIdSync(member.id)
+
+                    if (localMember != null) {
+                        // ✅ Update relationships in Room
+                        threeGenDao.updateRelationships(
+                            id = member.id,
+                            parentID = member.parentID,
+                            spouseID = member.spouseID
+                        )
+                        updatedCount++
+                        Log.d("FirestoreSync", "✅ Updated relationships for: ${member.firstName} ${member.lastName}")
+                    }
+                }
+            }
+
+            Log.d("FirestoreSync", "✅ Successfully updated $updatedCount relationships in Room")
+
+        } catch (e: Exception) {
+            Log.e("FirestoreSync", "❌ Relationship update failed: ${e.message}", e)
+        }
+    }
+    //-------- Firestore-->Room ends
+}

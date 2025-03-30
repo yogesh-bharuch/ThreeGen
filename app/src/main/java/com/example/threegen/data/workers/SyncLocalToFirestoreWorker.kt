@@ -24,8 +24,8 @@ class SyncLocalToFirestoreWorker(
     // ✅ Get current Firebase user ID
     private val currentUserId: String = FirebaseAuth.getInstance().currentUser?.uid ?: "Unknown"
 
-    // ✅ Access the repository directly
-    private val repository = ThreeGenRepository.getInstance(context)
+    // ✅ Initialize the repository directly
+    private val repository: ThreeGenRepository by lazy { ThreeGenRepository.getInstance(context) }
 
     override suspend fun doWork(): Result {
         val syncTime = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
@@ -46,7 +46,7 @@ class SyncLocalToFirestoreWorker(
             // ✅ Prepare WorkManager result data
             val outputData = workDataOf("SYNC_RESULT" to resultMessage)
 
-            Log.d("FirestoreSync", "🔥 Sync completed: $resultMessage")
+            Log.d("FirestoreSync", "🔥 Room → Firestore Sync completed: $resultMessage")
 
             Result.success(outputData)   // ✅ Return success with output data
 
@@ -54,7 +54,7 @@ class SyncLocalToFirestoreWorker(
             Log.e("FirestoreSync", "🔥 Sync failed: ${e.localizedMessage}")
 
             // ✅ Return failure with error message
-            val outputData = workDataOf("SYNC_RESULT" to "🔥 Sync failed: ${e.localizedMessage}")
+            val outputData = workDataOf("SYNC_RESULT" to "🔥 Room → Firestore Sync failed: ${e.localizedMessage}")
 
             Result.retry()  // 🔁 Request retry
         }

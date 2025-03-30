@@ -5,9 +5,11 @@ import android.util.Log
 import androidx.lifecycle.LifecycleOwner
 import androidx.work.BackoffPolicy
 import androidx.work.Constraints
+import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.ExistingWorkPolicy
 import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import androidx.work.workDataOf
@@ -92,23 +94,34 @@ object WorkManagerHelper {
      * ✅ Periodic Sync: Runs in the background (even if the app is closed)
      * - Syncs Local → Firestore → Room in a chain.
      */
-    fun schedulePeriodicSync(context: Context, timeIntervalInMinutes: Long = 720) {
+    fun schedulePeriodicSync(
+        context: Context,
+        timeIntervalInMinutes: Long = 720
+    ) {
         val workManager = WorkManager.getInstance(context)
 
         // ✅ Local → Firestore (first in chain)
-        val localToFirestoreWork = OneTimeWorkRequestBuilder<SyncLocalToFirestoreWorker>()
+        val localToFirestoreWork = PeriodicWorkRequestBuilder<SyncLocalToFirestoreWorker>(timeIntervalInMinutes, TimeUnit.MINUTES)
             .addTag("PeriodicLocalToFirestore")
             .build()
 
         // ✅ Firestore → Room (second in chain)
-        val firestoreToRoomWork = OneTimeWorkRequestBuilder<SyncFirestoreToRoomWorker>()
+        val firestoreToRoomWork = PeriodicWorkRequestBuilder<SyncFirestoreToRoomWorker>(timeIntervalInMinutes, TimeUnit.MINUTES)
             .addTag("PeriodicFirestoreToRoom")
             .build()
 
-        // 🔥 Chain the two periodic sync workers
-        workManager.beginWith(localToFirestoreWork)
-            .then(firestoreToRoomWork)
-            .enqueue()
+        // 🔥 Schedule the workers separately (no chaining allowed with periodic work)
+        workManager.enqueueUniquePeriodicWork(
+            "PeriodicLocalToFirestore",
+            ExistingPeriodicWorkPolicy.KEEP,      // Prevent duplication
+            localToFirestoreWork
+        )
+
+        workManager.enqueueUniquePeriodicWork(
+            "PeriodicFirestoreToRoom",
+            ExistingPeriodicWorkPolicy.KEEP,      // Prevent duplication
+            firestoreToRoomWork
+        )
 
         Log.d("FirestoreSync", "🔥 Periodic sync chain scheduled every $timeIntervalInMinutes minutes")
     }
