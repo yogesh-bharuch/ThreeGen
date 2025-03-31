@@ -68,7 +68,7 @@ interface ThreeGenDao {
     @Query("UPDATE three_gen_table SET deleted = 1, syncStatus = 'UPDATED' WHERE id = :threeGenId")
     suspend fun markAsDeleted(threeGenId: String)
 
-    @Query("SELECT * FROM three_gen_table WHERE syncStatus != :syncStatus")
+    @Query("SELECT * FROM three_gen_table WHERE syncStatus != :syncStatus AND deleted = 0")
     suspend fun getUnsyncedMembers(syncStatus: SyncStatus = SyncStatus.SYNCED): List<ThreeGen>
 
     /**

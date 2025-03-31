@@ -376,6 +376,7 @@ class ThreeGenRepository(private val threeGenDao: ThreeGenDao) {
             // ✅ Commit batch updates
             batch.commit().await()
             messages.add("✅ References removed for ID: $deletedMemberId")
+            Log.d("FirestoreRepo", "✅ References removed for ID: $deletedMemberId")
 
         } catch (e: Exception) {
             Log.e("FirestoreRepo", "❌ Failed to remove references: ${e.message}", e)
@@ -400,17 +401,17 @@ class ThreeGenRepository(private val threeGenDao: ThreeGenDao) {
         callback: (String) -> Unit
     ) = withContext(Dispatchers.IO) {
         try {
-            Log.d("FirestoreSync", "🔥 From Repository.syncFirestoreToRoom: Syncing Firestore → Room...")
+            Log.d("Repository", "🔥 From Repository.syncFirestoreToRoom: Syncing Firestore → Room...")
 
             // ✅ Fetch modified members from Firestore
             val members = fetchModifiedFirestoreMembers(lastSyncTime, currentUserId)
-            Log.d("FirestoreSync", "✅ From Repository.syncFirestoreToRoom: Fetched ${members.size} modified members")
+            Log.d("Repository", "✅ From Repository.syncFirestoreToRoom: Fetched ${members.size} modified members")
 
             if (members.isNotEmpty()) {
                 if (isFirstRun) {
                     // 🔥 First run → Clear Room DB
                     threeGenDao.clearAll()
-                    Log.d("FirestoreSync", "✅ From Repository.syncFirestoreToRoom: Cleared local Room DB")
+                    Log.d("Repository", "✅ From Repository.syncFirestoreToRoom: Cleared all the data from local Room DB")
                 }
 
                 // 🔥 Step 1: Insert all members WITHOUT relationships
@@ -418,19 +419,19 @@ class ThreeGenRepository(private val threeGenDao: ThreeGenDao) {
                     member.copy(parentID = null, spouseID = null)  // Temporarily remove relationships
                 }
                 threeGenDao.insertOrUpdateMembers(membersWithoutRelationships)
-                Log.d("FirestoreSync", "✅ From Repository.syncFirestoreToRoom: Inserted ${members.size} members without relationships")
+                Log.d("Repository", "✅ From Repository.syncFirestoreToRoom: Inserted ${members.size} members without relationships")
 
                 // 🔥 Step 2: Update relationships in Room
                 updateRelationshipsInRoom(members)
 
-                callback("✅ ${members.size} members synced from Firestore to Room successfully")
+                callback("✅  Repository.syncFirestoreToRoom: ${members.size} members synced from Firestore to Room successfully")
             } else {
-                Log.d("FirestoreSync", "✅ From Repository.syncFirestoreToRoom: No modified members found")
-                callback("No members to sync")
+                Log.d("Repository", "✅ From Repository.syncFirestoreToRoom: No modified members found")
+                callback("✅  Repository.syncFirestoreToRoom: No members to sync")
             }
 
         } catch (e: Exception) {
-            Log.e("FirestoreSync", "❌ From Repository.syncFirestoreToRoom: Sync failed: ${e.message}", e)
+            Log.e("Repository", "❌ From Repository.syncFirestoreToRoom: Sync failed: ${e.message}", e)
             callback("❌ Sync failed: ${e.message}")
         }
     }
@@ -494,7 +495,7 @@ class ThreeGenRepository(private val threeGenDao: ThreeGenDao) {
      */
     private suspend fun updateRelationshipsInRoom(members: List<ThreeGen>) = withContext(Dispatchers.IO) {
         try {
-            Log.d("FirestoreSync", "🔥 From Repository.updateRelationshipsInRoom: Updating relationships...")
+           // Log.d("FirestoreSyncupdate.RelationshipsInRoom", "🔥 From Repository.updateRelationshipsInRoom: Updating relationships...")
 
             var updatedCount = 0
 
@@ -512,15 +513,15 @@ class ThreeGenRepository(private val threeGenDao: ThreeGenDao) {
                             spouseID = member.spouseID
                         )
                         updatedCount++
-                        Log.d("FirestoreSync", "✅ Updated relationships for: ${member.firstName} ${member.lastName}")
+                        Log.d("Repository", "✅ From Repository.updateRelationshipsInRoom: $updatedCount Members Updated for relationships i.e.: ${member.firstName} ${member.middleName} ${member.lastName}")
                     }
                 }
             }
 
-            Log.d("FirestoreSync", "✅ Successfully updated $updatedCount relationships in Room")
+            //Log.d("FirestoreSync", "✅ Successfully updated $updatedCount relationships in Room")
 
         } catch (e: Exception) {
-            Log.e("FirestoreSync", "❌ Relationship update failed: ${e.message}", e)
+            Log.e("Repository", "❌ From Repository.updateRelationshipsInRoom: Relationship update failed: ${e.message}", e)
         }
     }
     //-------- Firestore-->Room ends

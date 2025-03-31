@@ -146,13 +146,7 @@ fun MemberDetailScreen(memberId: String, navController: NavHostController, viewM
                                             }
                                             viewModel.clearEditableSpouse() // Clear parent details if parent changed od add
                                             viewModel.clearEditableParent() // Clear parent details if spouse changed od add
-                                            // ✅ Step 1: Room → Firestore sync
-                                            /*viewModel.syncLocalDataToFirestore { syncMessage ->
-                                                Log.d("SyncFlow", "🔥 Room → Firestore: $syncMessage")
-                                                // ✅ Display the sync result in a Snackbar
-                                                SnackbarManager.showMessage("Sync Result: $syncMessage")
-                                            }*/
-                                                  //WorkManagerHelper.scheduleImmediateSync(context)
+                                            WorkManagerHelper.immediateSync(context) // copies local to firestore
                                         },
                                         modifier = Modifier.weight(1f)
                                     ) { Text(text = "Save") }
@@ -462,7 +456,7 @@ fun DeleteButton(member: ThreeGen, viewModel: ThreeGenViewModel, navController: 
                     navController.popBackStack()
                     showDialog = false
                     SnackbarManager.showMessage("Successfully marked as deleted ")
-                    WorkManagerHelper.scheduleImmediateSync(context)
+                    WorkManagerHelper.immediateSync(context)
                     //Toast.makeText(context, "Member deleted", Toast.LENGTH_SHORT).show()
                 }) { Text("Yes, Delete") }
             },

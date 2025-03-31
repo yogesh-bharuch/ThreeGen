@@ -28,19 +28,27 @@ import java.util.concurrent.TimeUnit
 object WorkManagerHelper {
 
     /**
+     * ✅ Store lastSyncTime and currentUserId in SharedPreferences.
+     */
+    private fun saveSyncParams(context: Context, lastSyncTime: Long, currentUserId: String) {
+        val sharedPreferences = context.getSharedPreferences("SyncPrefs", Context.MODE_PRIVATE)
+        with(sharedPreferences.edit()) {
+            putLong("LAST_SYNC_TIME", lastSyncTime)
+            putString("CURRENT_USER_ID", currentUserId)
+            apply()
+        }
+        //Log.d("FirestoreSync", "✅ From WorkManagerHelper: Saved Sync Params → lastSyncTime: $lastSyncTime, currentUserId: $currentUserId")
+    }
+
+    /**
      * ✅ Chain Sync for App Startup:
      * 1. Local → Firestore
      * 2. Firestore → Room (only after local → Firestore is complete)
      */
     fun chainSyncOnStartup(context: Context, lastSyncTime: Long, currentUserId: String) {
         val workManager = WorkManager.getInstance(context)
-
-        // ✅ Pass input data for Firestore-to-Room worker
-        val inputData = workDataOf(
-            "LAST_SYNC_TIME" to lastSyncTime,       // Last sync timestamp
-            "CURRENT_USER_ID" to currentUserId      // Current user ID for filtering sync
-        )
-        Log.d("FirestoreSync", "🔥 From WorkManagerHelper.chainSyncOnStartup started")
+        // ✅ Save sync parameters to SharedPreferences
+        saveSyncParams(context, lastSyncTime, currentUserId)
 
         // 🔥 Step 1: Local → Firestore Sync
         val syncLocalToFirestoreWork = OneTimeWorkRequestBuilder<SyncLocalToFirestoreWorker>()
@@ -49,7 +57,6 @@ object WorkManagerHelper {
 
         // 🔥 Step 2: Firestore → Room Sync
         val syncFirestoreToRoomWork = OneTimeWorkRequestBuilder<SyncFirestoreToRoomWorker>()
-            .setInputData(inputData)              // Pass input data to the worker
             .addTag("SyncFirestoreToRoom")        // Add tag for tracking
             .build()
 
@@ -58,14 +65,14 @@ object WorkManagerHelper {
             .then(syncFirestoreToRoomWork)                // Then: Firestore → Room
             .enqueue()                                    // Enqueue the chain
 
-        Log.d("FirestoreSync", "🔥 Chained sync jobs enqueued on app startup")
+        Log.d("WorkManagerHelper", "🔥 From WorkManagerHelper.chainSyncOnStartup: (One time) Chained sync jobs enqueued on app startup \n  Sync Params: lastSyncTime: $lastSyncTime, currentUserId: $currentUserId \n  With lastSyncTime= $lastSyncTime, currentUserId= $currentUserId")
     }
 
     /**
      * ✅ Immediate One-Time Sync: Local → Firestore
      * - Triggered when user modifies data
      */
-    fun scheduleImmediateSync(context: Context) {
+    fun immediateSync(context: Context) {
         val constraints = Constraints.Builder()
             .setRequiredNetworkType(NetworkType.CONNECTED)    // Only sync with network
             .build()
@@ -87,7 +94,7 @@ object WorkManagerHelper {
             ExistingWorkPolicy.REPLACE,      // Replace existing immediate sync if it exists
             syncRequest
         )
-        Log.d("FirestoreSync", "🔥 Immediate sync scheduled")
+        Log.d("WorkManagerHelper", "🔥 From WorkManagerHelper.immediateSync: Immediate sync issued local->firestore")
     }
 
     /**
@@ -96,9 +103,13 @@ object WorkManagerHelper {
      */
     fun schedulePeriodicSync(
         context: Context,
-        timeIntervalInMinutes: Long = 720
+        timeIntervalInMinutes: Long = 720,
+        lastSyncTime: Long,
+        currentUserId: String
     ) {
         val workManager = WorkManager.getInstance(context)
+        // ✅ Store the sync parameters in SharedPreferences
+        saveSyncParams(context, lastSyncTime, currentUserId)
 
         // ✅ Local → Firestore (first in chain)
         val localToFirestoreWork = PeriodicWorkRequestBuilder<SyncLocalToFirestoreWorker>(timeIntervalInMinutes, TimeUnit.MINUTES)
@@ -107,6 +118,7 @@ object WorkManagerHelper {
 
         // ✅ Firestore → Room (second in chain)
         val firestoreToRoomWork = PeriodicWorkRequestBuilder<SyncFirestoreToRoomWorker>(timeIntervalInMinutes, TimeUnit.MINUTES)
+           // .setInputData(inputData)                   // Pass sync time and user ID
             .addTag("PeriodicFirestoreToRoom")
             .build()
 
@@ -123,7 +135,7 @@ object WorkManagerHelper {
             firestoreToRoomWork
         )
 
-        Log.d("FirestoreSync", "🔥 Periodic sync chain scheduled every $timeIntervalInMinutes minutes")
+        Log.d("WorkManagerHelper", "🔥 From WorkManagerHelper.schedulePeriodicSync : chain scheduled every $timeIntervalInMinutes minutes")
     }
 
     /**
@@ -144,8 +156,11 @@ object WorkManagerHelper {
                     if (workInfo.state == WorkInfo.State.SUCCEEDED) {
                         val resultMessage = workInfo.outputData.getString("SYNC_RESULT")
                             ?: "Immediate Sync completed"
-                        Log.d("FirestoreSync", "🔥 Immediate Sync Result: $resultMessage")
+                        Log.d("FirestoreSync", "🔥 From workManager.getWorkInfosByTagLiveData: Immediate Sync Result: $resultMessage")
                         onResult(resultMessage)
+
+                        // ✅ Clear completed work after logging the message
+                        workManager.pruneWork()    // Removes completed/cancelled work from WorkManager DB
                     }
                 }
             }
@@ -159,6 +174,9 @@ object WorkManagerHelper {
                             ?: "Periodic Sync Local → Firestore completed"
                         Log.d("FirestoreSync", "🔥 Periodic Local → Firestore Sync Result: $resultMessage")
                         onResult(resultMessage)
+
+                        // ✅ Clear completed work
+                        workManager.pruneWork()
                     }
                 }
             }
@@ -169,8 +187,10 @@ object WorkManagerHelper {
                     if (workInfo.state == WorkInfo.State.SUCCEEDED) {
                         val resultMessage = workInfo.outputData.getString("SYNC_RESULT")
                             ?: "Periodic Sync Firestore → Room completed"
-                        Log.d("FirestoreSync", "🔥 Periodic Firestore → Room Sync Result: $resultMessage")
+                        Log.d("FirestoreSync", "🔥 From workManager.getWorkInfosByTagLiveData: Periodic Firestore → Room Sync Result: $resultMessage")
                         onResult(resultMessage)
+                        // ✅ Clear completed work
+                        workManager.pruneWork()
                     }
                 }
             }
