@@ -404,13 +404,13 @@ class ThreeGenRepository(private val threeGenDao: ThreeGenDao) {
             Log.d("Repository", "🔥 From Repository.syncFirestoreToRoom: Syncing Firestore → Room...")
 
             // ✅ Fetch modified members from Firestore
-            val members = fetchModifiedFirestoreMembers(lastSyncTime, currentUserId)
+            val members = fetchModifiedFirestoreMembers(isFirstRun, lastSyncTime, currentUserId)
             Log.d("Repository", "✅ From Repository.syncFirestoreToRoom: Fetched ${members.size} modified members")
 
             if (members.isNotEmpty()) {
                 if (isFirstRun) {
                     // 🔥 First run → Clear Room DB
-                    threeGenDao.clearAll()
+                    //threeGenDao.clearAll()
                     Log.d("Repository", "✅ From Repository.syncFirestoreToRoom: Cleared all the data from local Room DB")
                 }
 
@@ -440,9 +440,10 @@ class ThreeGenRepository(private val threeGenDao: ThreeGenDao) {
      * 🔥 Fetches only (modified members since the last sync + not created by the same user) and maps them to `ThreeGen`.
      * Sets `deleted = false` by default since Firestore does not have this field.
      */
-    private suspend fun fetchModifiedFirestoreMembers(lastSyncTime: Long, currentUserId: String): List<ThreeGen> {
+    private suspend fun fetchModifiedFirestoreMembers(isFirstRun: Boolean =false, lastSyncTime: Long, currentUserId: String): List<ThreeGen> {
         return try {
-            val query = if (lastSyncTime > 0) { collectionRef
+            //val query = if (lastSyncTime > 0) { collectionRef
+            val query = if (!isFirstRun) { collectionRef
                 .whereGreaterThan("updatedAt", lastSyncTime)
                 .whereNotEqualTo("createdBy", currentUserId)
             } else {
@@ -450,7 +451,7 @@ class ThreeGenRepository(private val threeGenDao: ThreeGenDao) {
             }
 
             val snapshot = query.get().await()
-            //Log.d("FirestoreSync", "✅ From Repository.syncFirestoreToRoom Query snapshot size: ${snapshot.size()}")
+            Log.d("Repository", "✅ From Repository.syncFirestoreToRoom Query snapshot size: ${snapshot.size()}")
 
             if (!snapshot.isEmpty) {
                 val members = snapshot.documents.map { doc ->

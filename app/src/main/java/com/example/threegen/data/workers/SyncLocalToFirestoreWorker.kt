@@ -7,6 +7,7 @@ import androidx.work.WorkerParameters
 import androidx.work.workDataOf
 import com.example.threegen.data.ThreeGenRepository
 import com.google.firebase.auth.FirebaseAuth
+import java.text.DateFormat
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -39,7 +40,10 @@ class SyncLocalToFirestoreWorker(
         val syncTime = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
         // ✅ Read the sync parameters from SharedPreferences
         val (lastSyncTime, currentUserId) = getSyncParams(applicationContext)
-        Log.d("SyncLocalToFirestoreWorker", "\uD83D\uDCC5 From SyncLocalToFirestoreWorker: Local-> firestore sync Started at : $syncTime, LastSync Time: $lastSyncTime, User ID: $currentUserId")
+        val date = Date(lastSyncTime) // Convert timestamp to Date object
+        val formattedTime = DateFormat.getTimeInstance(DateFormat.MEDIUM).format(date) //SimpleDateFormat("HH:mm:ss").format(date)
+
+        Log.d("SyncLocalToFirestoreWorker", "\uD83D\uDCC5 From SyncLocalToFirestoreWorker: Local-> firestore sync Started at : $syncTime, LastSync Time: $formattedTime, User ID: $currentUserId")
 
         return try {
             // ✅ Use callback to handle the sync result properly
@@ -55,7 +59,6 @@ class SyncLocalToFirestoreWorker(
 
             // ✅ Prepare WorkManager result data
             val outputData = workDataOf("SYNC_RESULT" to resultMessage)
-
             Log.d("FirestoreSync", "🔥 From SyncLocalToFirestoreWorker.dowork: Room → Firestore Sync completed: $resultMessage")
 
             Result.success(outputData)   // ✅ Return success with output data
