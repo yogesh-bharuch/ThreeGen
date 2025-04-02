@@ -13,7 +13,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.rememberNavController
 import com.example.threegen.data.SyncStatus
@@ -26,11 +25,10 @@ import com.example.threegen.data.ThreeGenViewModelFactory
 import com.example.threegen.ui.theme.ThreeGenTheme
 import com.example.threegen.util.RequestPermissions
 import com.example.threegen.util.SnackbarManager
-import com.example.threegen.util.WorkManagerHelper
+import com.example.threegen.data.workers.WorkManagerHelper
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
@@ -72,7 +70,7 @@ class MainActivity : ComponentActivity() {
 
         // ✅ Trigger chained sync jobs on app start (local → Firestore → Room)
         if (!isFirstRun && !viewModel.isSyncedInSession) {
-            Log.d("MainActivityFirestoreSync", "From Mainactivity.chainSyncJobs Triggering chained sync jobs")
+            Log.d("MainActivityFirestoreSync", "From Mainactivity Onetime sync local->firestore->local sync jobs issued to WorkManagerHelper.chainSyncJobs")
             WorkManagerHelper.chainSyncOnStartup(context = applicationContext, lastSyncTime = lastSyncTime, currentUserId = currentUserId)
             viewModel.isSyncedInSession = true
         }
@@ -91,7 +89,13 @@ class MainActivity : ComponentActivity() {
                 LaunchedEffect(true) {
                     //Log.d("MainActivityFirestoreSync", "From Mainactivity.schedulePeriodicSync sync jobs issued to WorkManagerHelper")
                     if (!isFirstRun){
-                        WorkManagerHelper.schedulePeriodicSync(context, timeIntervalInMinutes = 15, lastSyncTime = lastSyncTime, currentUserId = currentUserId)
+                        //Log.d("FirestoreSync", "From Mainactivity.LaunchedEffect schedulePeriodicSync jobs issued to WorkManagerHelper")
+                        viewModel.isSyncedInSession = false
+                        if (!viewModel.isSyncedInSession) {
+                            //Log.d("FirestoreSync", "From Mainactivity.LaunchedEffect schedulePeriodicSync jobs issued to WorkManagerHelper")
+                            WorkManagerHelper.schedulePeriodicSync(context, timeIntervalInMinutes = 15, lastSyncTime = lastSyncTime, currentUserId = currentUserId)
+                        }
+                        viewModel.isSyncedInSession = true
                     }
                 }
 

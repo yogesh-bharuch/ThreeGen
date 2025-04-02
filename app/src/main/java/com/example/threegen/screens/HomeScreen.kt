@@ -14,7 +14,7 @@ import androidx.navigation.NavHostController
 import com.example.threegen.*
 import com.example.threegen.data.ThreeGenViewModel
 import com.example.threegen.login.AuthViewModel
-import com.example.threegen.util.WorkManagerHelper
+import com.example.threegen.data.workers.WorkManagerHelper
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

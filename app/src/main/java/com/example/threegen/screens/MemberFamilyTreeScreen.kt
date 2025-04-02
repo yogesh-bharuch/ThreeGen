@@ -221,8 +221,7 @@ fun CollapsibleFamilyTreeItem(navController: NavHostController, member: ThreeGen
         Column(modifier = Modifier.padding(start = 4.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().clickable { expanded = !expanded })
             {
-                if (!member.imageUri.isNullOrEmpty())
-                {
+                if (!member.imageUri.isNullOrEmpty()) {
                     AsyncImage(
                         model = member.imageUri,
                         contentDescription = "Profile Image",
@@ -246,7 +245,7 @@ fun CollapsibleFamilyTreeItem(navController: NavHostController, member: ThreeGen
                     Text("Generation: $generation", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
                     Text( "${member.firstName} ${member.middleName} ${member.lastName}", style = MaterialTheme.typography.bodyMedium.copy(color = textColor), fontWeight = FontWeight.Bold)
                     Text("Town: ${member.town}", color = textColor)
-                } // spouse name and town display
+                } // Member display Section
             } // Member display Section
             member.spouseID?.let { spouseId ->
                 members.find { it.id == spouseId }?.let { spouse ->

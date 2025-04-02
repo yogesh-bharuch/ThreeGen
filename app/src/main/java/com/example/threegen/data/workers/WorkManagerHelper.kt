@@ -1,4 +1,4 @@
-package com.example.threegen.util
+package com.example.threegen.data.workers
 
 import android.content.Context
 import android.util.Log
@@ -12,8 +12,6 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
-import com.example.threegen.data.workers.SyncFirestoreToRoomWorker
-import com.example.threegen.data.workers.SyncLocalToFirestoreWorker
 import java.util.concurrent.TimeUnit
 
 /**

@@ -1,6 +1,5 @@
 package com.example.threegen.screens
 
-import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -65,7 +64,7 @@ import com.example.threegen.data.ThreeGenViewModel
 import com.example.threegen.util.CustomTopBar
 import com.example.threegen.util.MemberState
 import com.example.threegen.util.SnackbarManager
-import com.example.threegen.util.WorkManagerHelper
+import com.example.threegen.data.workers.WorkManagerHelper
 import com.example.threegen.util.formatDateTime
 
 @Composable
