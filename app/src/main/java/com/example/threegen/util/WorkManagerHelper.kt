@@ -220,7 +220,7 @@ object WorkManagerHelper {
             ExistingWorkPolicy.REPLACE,      // Replace existing immediate sync if it exists
             syncRequest
         )
-        Log.d("FirestoreSync", "🔥 From WorkManagerHelper.firstTimeSync: Immediate sync issued firestore->local")
+        Log.d("FirestoreSync", "🔥 From WorkManagerHelper.manualSync: Immediate sync issued firestore->local")
     }
 
 }

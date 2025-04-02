@@ -64,9 +64,11 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
 import coil.compose.rememberAsyncImagePainter
+import com.example.threegen.Home
 import com.example.threegen.MemberFamilyTree
 import com.example.threegen.data.ThreeGen
 import com.example.threegen.data.ThreeGenViewModel
+import com.example.threegen.util.CustomTopBar
 import com.example.threegen.util.MemberState
 
 //--------------------------
@@ -123,43 +125,79 @@ fun MemberFamilyTreeScreen(
 
     val rootMember = findRootMember(member, members)
     val descendants = rootMember?.let { findAllDescendants(it, members) } ?: emptyList()
-
-    Box(modifier = modifier.fillMaxSize().padding(16.dp)) {
-        when (val state = memberState) {
-            is MemberState.Loading -> { CircularProgressIndicator(modifier = Modifier.padding(16.dp)) }
-            is MemberState.Error -> { Text(text = "Error: ${state.message}", color = Color.Red, modifier = Modifier.padding(16.dp)) }
-            is MemberState.Empty -> { Text(text = "No members found", color = Color.Gray, modifier = Modifier.padding(16.dp)) }
-            is MemberState.Success -> { Text(text = "Its a individual member not a list", color = Color.Gray, modifier = Modifier.padding(16.dp)) }
-            is MemberState.SuccessList -> {
-                if (state.members.isEmpty()) {
-                    Text(text = "No matching members found", color = Color.Gray, modifier = Modifier.padding(16.dp))
-                } else {
-                    //displaying the FamilyTreeItem composable.
-                    rootMember?.let {
-                        LazyColumn(modifier = Modifier.fillMaxSize()) {
-                            item { if (member != null) { Text(text = "Family Tree of ${member.firstName} ${member.middleName} ${member.lastName}", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 16.dp)) } }
-                            item { CollapsibleFamilyTreeItem(navController = navController, member = rootMember, members = members, onImageClick = { uri -> zoomedImageUri = uri }, expandedMemberIds = getExpandedMemberIds(memberId, members), selectedMemberId = memberId) }
+    Column(modifier = Modifier.fillMaxSize().padding(top = 40.dp).padding(bottom = 40.dp))
+    {
+        CustomTopBar(title = "Member Family Tree", navController = navController, onHomeClick = { navController.navigate(Home) })
+        Box(modifier = modifier.fillMaxSize().padding(16.dp))
+        {
+            when (val state = memberState) {
+                is MemberState.Loading -> {
+                    CircularProgressIndicator(modifier = Modifier.padding(16.dp))
+                }
+                is MemberState.Error -> {
+                    Text(
+                        text = "Error: ${state.message}",
+                        color = Color.Red,
+                        modifier = Modifier.padding(16.dp)
+                    )
+                }
+                is MemberState.Empty -> {
+                    Text(
+                        text = "No members found",
+                        color = Color.Gray,
+                        modifier = Modifier.padding(16.dp)
+                    )
+                }
+                is MemberState.Success -> {
+                    Text(
+                        text = "Its a individual member not a list",
+                        color = Color.Gray,
+                        modifier = Modifier.padding(16.dp)
+                    )
+                }
+                is MemberState.SuccessList -> {
+                    if (state.members.isEmpty()) {
+                        Text(text = "No matching members found", color = Color.Gray, modifier = Modifier.padding(16.dp))
+                    } else
+                    {
+                        //displaying the FamilyTreeItem composable.
+                        rootMember?.let {
+                            LazyColumn(modifier = Modifier.fillMaxSize()) {
+                                /*item {
+                                    if (member != null) {
+                                        Text(
+                                            text = "Family Tree of ${member.firstName} ${member.middleName} ${member.lastName}",
+                                            style = MaterialTheme.typography.headlineSmall,
+                                            fontWeight = FontWeight.Bold,
+                                            modifier = Modifier.padding(bottom = 16.dp)
+                                        )
+                                    }
+                                }*/
+                                item {
+                                    CollapsibleFamilyTreeItem(navController = navController, member = rootMember, members = members, onImageClick = { uri -> zoomedImageUri = uri }, expandedMemberIds = getExpandedMemberIds(memberId, members), selectedMemberId = memberId)
+                                }
+                            }
                         }
                     }
                 }
             }
-        }
-        // Zoomed Image Overlay
-        zoomedImageUri?.let { uri ->
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.8f))
-                    .clickable { zoomedImageUri = null },
-                contentAlignment = Alignment.Center
-            ) {
-                Image(
-                    painter = rememberAsyncImagePainter(uri),
-                    contentDescription = "Zoomed Image",
+            // Zoomed Image Overlay
+            zoomedImageUri?.let { uri ->
+                Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp)
-                )
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.8f))
+                        .clickable { zoomedImageUri = null },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Image(
+                        painter = rememberAsyncImagePainter(uri),
+                        contentDescription = "Zoomed Image",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp)
+                    )
+                }
             }
         }
     }
