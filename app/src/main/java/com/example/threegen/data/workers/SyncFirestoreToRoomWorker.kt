@@ -55,7 +55,7 @@ class SyncFirestoreToRoomWorker(
                     val date = Date(lastSyncTime) // Convert timestamp to Date object
                     val formattedTime = DateFormat.getTimeInstance(DateFormat.MEDIUM).format(date) //SimpleDateFormat("HH:mm:ss").format(date)
 
-                    Log.d("FirestoreSync", "✅ From SyncFirestoreToRoomWorker.dowork : Periodic Sync completed for Time: $formattedTime, User ID: $currentUserId \n at: $newSyncTime → $message")
+                    Log.d("FirestoreSync", "✅ From SyncFirestoreToRoomWorker.dowork : \n Periodic Sync completed lastsync($lastSyncTime) → Time: $formattedTime, \n User ID: $currentUserId \n at: $newSyncTime → $message")
                 }
             }
 

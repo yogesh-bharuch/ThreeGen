@@ -1,5 +1,6 @@
 package com.example.threegen
 
+import android.content.Context
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
@@ -15,6 +16,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.rememberNavController
+import com.example.threegen.data.SyncStatus
+import com.example.threegen.data.ThreeGen
+import com.example.threegen.data.ThreeGenRepository
 import com.example.threegen.login.AuthViewModel
 import com.example.threegen.login.AuthViewModelFactory
 import com.example.threegen.data.ThreeGenViewModel
@@ -25,7 +29,11 @@ import com.example.threegen.util.SnackbarManager
 import com.example.threegen.util.WorkManagerHelper
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 
 class MainActivity : ComponentActivity() {
 
@@ -49,16 +57,29 @@ class MainActivity : ComponentActivity() {
         // ✅ Get current user ID from Firebase Authentication
         val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: "Unknown"
 
+        // ✅ First-Time Sync Execution (Direct Repository Sync)
+        if (isFirstRun) {
+            Log.d("FirestoreSync", "🔥 First-time Sync Triggered")
+
+            // ✅ Execute first-time sync directly without WorkManager
+            runBlocking {
+                performFirstTimeSync(applicationContext, currentUserId)
+            }
+
+            // ✅ Mark first run as complete
+            sharedPreferences.edit().putBoolean("isFirstRun", false).apply()
+        }
+
         // ✅ Trigger chained sync jobs on app start (local → Firestore → Room)
         if (!isFirstRun && !viewModel.isSyncedInSession) {
-            //Log.d("MainActivityFirestoreSync", "From Mainactivity.chainSyncJobs Triggering chained sync jobs")
+            Log.d("MainActivityFirestoreSync", "From Mainactivity.chainSyncJobs Triggering chained sync jobs")
             WorkManagerHelper.chainSyncOnStartup(context = applicationContext, lastSyncTime = lastSyncTime, currentUserId = currentUserId)
             viewModel.isSyncedInSession = true
         }
 
         setContent {
             ThreeGenTheme {
-                val context = LocalContext.current
+                val context = this@MainActivity
                 val scope = rememberCoroutineScope()
                 val snackbarHostState = SnackbarManager.getSnackbarHostState()
                 val navController = rememberNavController()
@@ -66,9 +87,12 @@ class MainActivity : ComponentActivity() {
                 RequestPermissions(activity = this@MainActivity)
 
                 // ✅ Schedule periodic Firestore-to-Room sync (every 15 min) in the background
+
                 LaunchedEffect(true) {
                     //Log.d("MainActivityFirestoreSync", "From Mainactivity.schedulePeriodicSync sync jobs issued to WorkManagerHelper")
-                    WorkManagerHelper.schedulePeriodicSync(context, timeIntervalInMinutes = 15, lastSyncTime = lastSyncTime, currentUserId = currentUserId)
+                    if (!isFirstRun){
+                        WorkManagerHelper.schedulePeriodicSync(context, timeIntervalInMinutes = 15, lastSyncTime = lastSyncTime, currentUserId = currentUserId)
+                    }
                 }
 
                 // ✅ Observe and display sync results
@@ -100,7 +124,7 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        // ✅ First-time sync → Use WorkManager instead of direct call
+/*        // ✅ First-time sync → Use WorkManager instead of direct call
         if (isFirstRun) {
             Log.d("FirestoreSync", "🔥 First-time sync triggered")
 
@@ -113,7 +137,7 @@ class MainActivity : ComponentActivity() {
 
             // ✅ Mark first run as complete
             sharedPreferences.edit().putBoolean("isFirstRun", false).apply()
-        }
+        }*/
 
 
         // ✅ Store current time as new sync timestamp
@@ -121,6 +145,70 @@ class MainActivity : ComponentActivity() {
         sharedPreferences.edit().putLong("last_sync_time", currentSyncTime).apply()
     }
 }
+
+/**
+ * ✅ Performs the first-time sync directly, bypassing WorkManager
+ */
+private suspend fun performFirstTimeSync(context: Context, currentUserId: String) {
+    val dao = MainApplication.threeGenDatabase.getThreeGenDao()
+
+    try {
+        Log.d("FirestoreSync", "🔥 Performing First-Time Sync...")
+
+
+        // ✅ Force Room database creation before syncing
+        withContext(Dispatchers.IO) {
+            Log.d("FirestoreSync", "⚙️ Forcing Room Database Creation...")
+
+            // Dummy insert to trigger database schema creation
+            val dummyMember = ThreeGen(
+                firstName = "Init",
+                middleName = "Init",
+                lastName = "Init",
+                town = "InitTown",
+                shortName = "INIT",
+                isAlive = true,
+                childNumber = 0,
+                comment = "DB Init",
+                imageUri = null,
+                syncStatus = SyncStatus.SYNCED,
+                deleted = false,
+                createdAt = System.currentTimeMillis(),
+                createdBy = currentUserId,
+                updatedAt = System.currentTimeMillis(),
+                id = "dummy_id",
+                parentID = null,
+                spouseID = null
+            )
+
+            // Insert dummy record → Forces schema creation
+            dao.insert(dummyMember)
+
+            // ✅ Delete dummy record immediately
+            dao.deleteThreeGen(dummyMember.id)
+
+            Log.d("FirestoreSync", "✅ Room Database Created Successfully.")
+        }
+
+        // ✅ Execute Firestore → Room sync directly
+        withContext(Dispatchers.IO) {
+            ThreeGenRepository.getInstance(context).syncFirestoreToRoom(
+                lastSyncTime = 0L,         // First-time full sync
+                isFirstRun = true,         // First-run flag
+                currentUserId = currentUserId
+            ) { message ->
+                Log.d("FirestoreSync", "✅ First-time Sync Completed: $message")
+            }
+        }
+
+    } catch (e: Exception) {
+        Log.e("FirestoreSync", "🔥 First-time Sync Failed: ${e.localizedMessage}", e)
+    }
+}
+
+
+
+
 
 
 

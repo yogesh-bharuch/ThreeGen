@@ -12,7 +12,6 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
-import androidx.work.workDataOf
 import com.example.threegen.data.workers.SyncFirestoreToRoomWorker
 import com.example.threegen.data.workers.SyncLocalToFirestoreWorker
 import java.util.concurrent.TimeUnit
@@ -135,7 +134,7 @@ object WorkManagerHelper {
             firestoreToRoomWork
         )
 
-        Log.d("WorkManagerHelper", "🔥 From WorkManagerHelper.schedulePeriodicSync : chain scheduled every $timeIntervalInMinutes minutes")
+        Log.d("FirestoreSync", "🔥 From WorkManagerHelper.schedulePeriodicSync : chain scheduled every $timeIntervalInMinutes minutes")
     }
 
     /**
@@ -195,4 +194,33 @@ object WorkManagerHelper {
                 }
             }
     }
+    /**
+     * ✅ Immediate One-Time Sync: Local → Firestore
+     * - Triggered when user modifies data
+     */
+    fun manualSync(context: Context) {
+        val constraints = Constraints.Builder()
+            .setRequiredNetworkType(NetworkType.CONNECTED)    // Only sync with network
+            .build()
+
+        val syncRequest = OneTimeWorkRequestBuilder<SyncFirestoreToRoomWorker>()  // Correct Worker!
+            .setConstraints(constraints)
+            .setBackoffCriteria(
+                BackoffPolicy.EXPONENTIAL,                   // Retry with exponential backoff
+                30, TimeUnit.SECONDS                         // Retry delay of 30 seconds
+            )
+            .addTag("firstTimeSync")                         // Add tag for tracking
+            .build()
+
+        val workManager = WorkManager.getInstance(context)
+
+        // ✅ Enqueue unique work to avoid duplication
+        workManager.enqueueUniqueWork(
+            "firstTimeSync",
+            ExistingWorkPolicy.REPLACE,      // Replace existing immediate sync if it exists
+            syncRequest
+        )
+        Log.d("FirestoreSync", "🔥 From WorkManagerHelper.firstTimeSync: Immediate sync issued firestore->local")
+    }
+
 }

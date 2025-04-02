@@ -26,7 +26,9 @@ interface ThreeGenDao {
      * Uses `REPLACE` strategy to avoid duplication issues during Firestore sync.
      */
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertOrUpdateMembers(members: List<ThreeGen>)
+    suspend fun insertOrUpdateMembers(members: List<ThreeGen>): List<Long>
+
+    //val rowIds =  insertOrUpdateMembers(members: List<ThreeGen>)
 
     /**
      * Clears all local data. (For full sync restoration)

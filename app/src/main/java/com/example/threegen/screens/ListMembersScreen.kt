@@ -100,6 +100,8 @@ fun ListMembersScreen(
                 is MemberState.Success -> { Text(text = "Wrong member State for List its for single member", color = Color.Gray, modifier = Modifier.padding(16.dp)) }
                 is MemberState.SuccessList -> {
                     val filteredMembers = if (searchQuery.isBlank()) {
+                        val totalMembers = state.members.size
+                        Text(text = "Total Members : $totalMembers", fontSize = 10.sp)
                         state.members // ✅ Show all members when search is empty
                     } else {
                         state.members.filter {
@@ -107,7 +109,8 @@ fun ListMembersScreen(
                                 searchQuery,
                                 ignoreCase = true
                             )
-                        } }
+                        }
+                    }
 
                     if (filteredMembers.isEmpty()) { Text(text = "No matching members found", color = Color.Gray, modifier = Modifier.padding(16.dp))
                     } else {

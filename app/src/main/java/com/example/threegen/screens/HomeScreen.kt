@@ -1,6 +1,6 @@
 package com.example.threegen.screens
 
-import android.util.Log
+import android.content.Context
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
@@ -14,7 +14,6 @@ import androidx.navigation.NavHostController
 import com.example.threegen.*
 import com.example.threegen.data.ThreeGenViewModel
 import com.example.threegen.login.AuthViewModel
-import com.example.threegen.util.SnackbarManager
 import com.example.threegen.util.WorkManagerHelper
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -52,18 +51,25 @@ fun HomeScreen(
             NavigationButton("Go To All Members Family Tree") { navController.navigate(MemberTree) }
             NavigationButton("Go To Unused Members") { navController.navigate(UnusedMembers) }
             // ✅ Manual Sync Button
-            /*
             Button(
                 onClick = {
                     // ✅ Trigger manual sync (no result callback needed)
-                    WorkManagerHelper.scheduleImmediateSync(context)
-                    Log.d("HomeScreen", "🔥 Manual sync triggered")
+                    //Log.d("FirestoreSync", "🔥 Manual sync triggered")
+                    WorkManagerHelper.manualSync(context)
+                    // Store current time as new sync timestamp
+                    val currentSyncTime = System.currentTimeMillis()
+                    val sharedPreferences = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+                    sharedPreferences.edit().putLong("last_sync_time", currentSyncTime).apply()
+                    /*val lastSyncTime = sharedPreferences.getLong("last_sync_time", 0L)
+                    val date = Date(lastSyncTime) // Convert timestamp to Date object
+                    val formattedTime = DateFormat.getTimeInstance(DateFormat.MEDIUM).format(date) //SimpleDateFormat("HH:mm:ss").format(date)
+                    Log.d("FirestoreSync", "✅ From Sync Data Button Home Screen : Updated last sync time: $lastSyncTime -> $formattedTime")*/
                 },
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(text = "Sync Data")
             }
-            */
+
         }
     }
 }

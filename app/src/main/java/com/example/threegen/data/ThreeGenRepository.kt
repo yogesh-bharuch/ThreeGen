@@ -13,6 +13,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.delay
 
 class ThreeGenRepository(private val threeGenDao: ThreeGenDao) {
     // Singleton instance
@@ -400,27 +401,31 @@ class ThreeGenRepository(private val threeGenDao: ThreeGenDao) {
         currentUserId: String,
         callback: (String) -> Unit
     ) = withContext(Dispatchers.IO) {
+        //Log.d("Repository", "🔥 From Repository.syncFirestoreToRoom: Syncing Firestore → Room...")
         try {
-            Log.d("Repository", "🔥 From Repository.syncFirestoreToRoom: Syncing Firestore → Room...")
+            //Log.d("Repository", "🔥 From Repository.syncFirestoreToRoom: Syncing Firestore → Room...")
 
             // ✅ Fetch modified members from Firestore
             val members = fetchModifiedFirestoreMembers(isFirstRun, lastSyncTime, currentUserId)
-            Log.d("Repository", "✅ From Repository.syncFirestoreToRoom: Fetched ${members.size} modified members")
+            Log.d("Repository", "✅ From Repository.syncFirestoreToRoom: total members: ${members.size} fetched")
 
             if (members.isNotEmpty()) {
                 if (isFirstRun) {
                     // 🔥 First run → Clear Room DB
-                    //threeGenDao.clearAll()
-                    Log.d("Repository", "✅ From Repository.syncFirestoreToRoom: Cleared all the data from local Room DB")
+                    threeGenDao.clearAll()
+                    Log.d("Repository", "✅ From Repository.syncFirestoreToRoom isFirstRun = true: Cleared all the data from local Room DB")
                 }
 
                 // 🔥 Step 1: Insert all members WITHOUT relationships
                 val membersWithoutRelationships = members.map { member ->
                     member.copy(parentID = null, spouseID = null)  // Temporarily remove relationships
                 }
-                threeGenDao.insertOrUpdateMembers(membersWithoutRelationships)
-                Log.d("Repository", "✅ From Repository.syncFirestoreToRoom: Inserted ${members.size} members without relationships")
+                //threeGenDao.insertOrUpdateMembers(membersWithoutRelationships)
+                val insertedRowIds = threeGenDao.insertOrUpdateMembers(membersWithoutRelationships)
+                Log.d("Repository", "✅ From syncFirestoreToRoom: Inserted ${insertedRowIds.size} members Without Relationships inserted into the database")
 
+                //Log.d("Repository", "✅ From Repository.syncFirestoreToRoom: Inserted ${members.size} members without relationships")
+                delay(2000)
                 // 🔥 Step 2: Update relationships in Room
                 updateRelationshipsInRoom(members)
 
@@ -442,16 +447,23 @@ class ThreeGenRepository(private val threeGenDao: ThreeGenDao) {
      */
     private suspend fun fetchModifiedFirestoreMembers(isFirstRun: Boolean =false, lastSyncTime: Long, currentUserId: String): List<ThreeGen> {
         return try {
-            //val query = if (lastSyncTime > 0) { collectionRef
-            val query = if (!isFirstRun) { collectionRef
+         /*   ✅ add this condition once app is released
+         val query = if (!isFirstRun) {
+                collectionRef
                 .whereGreaterThan("updatedAt", lastSyncTime)
                 .whereNotEqualTo("createdBy", currentUserId)
+            } else {
+                collectionRef  // First-time sync: fetch all members
+            }*/
+            val query = if (!isFirstRun) {
+                collectionRef
+                    .whereGreaterThan("updatedAt", lastSyncTime)
             } else {
                 collectionRef  // First-time sync: fetch all members
             }
 
             val snapshot = query.get().await()
-            Log.d("Repository", "✅ From Repository.syncFirestoreToRoom Query snapshot size: ${snapshot.size()}")
+            //Log.d("Repository", "✅ From Repository.syncFirestoreToRoom Query snapshot size: ${snapshot.size()}")
 
             if (!snapshot.isEmpty) {
                 val members = snapshot.documents.map { doc ->
@@ -475,12 +487,10 @@ class ThreeGenRepository(private val threeGenDao: ThreeGenDao) {
                         createdBy = doc.getString("createdBy") ?: "Unknown"
                     )
                 }
-                Log.d("Repository.syncFirestoreToRoom", "✅ From Repository.syncFirestoreToRoom Query members size: ${members.size}")
-                //returns
+                // Log.d("Repository.syncFirestoreToRoom", "✅ From Repository.fetchModifiedFirestoreMembers members: ${members.size} fetched")
                 members
             } else {
                 Log.d("Repository.syncFirestoreToRoom", "✅ From Repository.syncFirestoreToRoom No modified members found since last sync")
-                //returns
                 emptyList()
             }
         } catch (e: Exception) {
@@ -497,7 +507,6 @@ class ThreeGenRepository(private val threeGenDao: ThreeGenDao) {
     private suspend fun updateRelationshipsInRoom(members: List<ThreeGen>) = withContext(Dispatchers.IO) {
         try {
            // Log.d("FirestoreSyncupdate.RelationshipsInRoom", "🔥 From Repository.updateRelationshipsInRoom: Updating relationships...")
-
             var updatedCount = 0
 
             members.forEach { member ->
