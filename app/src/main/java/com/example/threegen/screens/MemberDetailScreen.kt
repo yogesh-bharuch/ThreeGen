@@ -80,7 +80,7 @@ fun MemberDetailScreen(memberId: String, navController: NavHostController, viewM
     }
     Column(modifier = Modifier.fillMaxSize().padding(top = 40.dp).padding(bottom = 40.dp))
     {
-        CustomTopBar(title = "Member Details", navController = navController, onHomeClick = { navController.navigate(Home) })
+        CustomTopBar(title = "Member Details", navController = navController, onBackClick = { navController.navigate(Home) })
         Box(modifier = Modifier.fillMaxSize().padding(1.dp))
         {
             when (val state = memberState) {

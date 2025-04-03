@@ -11,13 +11,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.AccountTree
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.Groups2
-import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -40,7 +35,6 @@ import com.example.threegen.util.CustomTopBar
 import com.example.threegen.util.MemberState
 import kotlinx.coroutines.FlowPreview
 
-@OptIn(FlowPreview::class, ExperimentalMaterial3Api::class) // ✅ Opt-in for debounce
 @Composable
 fun ListMembersScreen(
     navController: NavHostController,
@@ -58,20 +52,15 @@ fun ListMembersScreen(
     var selectedImageUri by remember { mutableStateOf<String?>(null) }
 
     Scaffold(
-        topBar = { TopAppBar(
-            modifier = Modifier.heightIn(max = 56.dp),
-            title = { Text("Member List") },
-            navigationIcon = {
-                IconButton(onClick = { navController.popBackStack() }) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+        topBar = { CustomTopBar(title = "Member List", navController = navController,
+            onBackClick = { navController.navigate(  Home)
+                {
+                    popUpTo(Home) { inclusive = true }  // Clears back stack
+                    launchSingleTop = true  // Prevents multiple instances
+                    restoreState = true  // Preserves state
                 }
-            },
-            actions = {
-                IconButton(onClick = { navController.navigate(Home) }) {
-                    Icon(Icons.Default.Home, contentDescription = "Home")
-                }
-            }
-        )},
+            })
+        },
         floatingActionButton = {
             FloatingActionButton(onClick = { navController.navigate(MemberDetail(id = "")) }) {
                 Icon(Icons.Default.Add, contentDescription = "Add")
@@ -82,16 +71,12 @@ fun ListMembersScreen(
         //drawerContent = { /* Slot for a Navigation Drawer */ },
         snackbarHost = { /* Slot for displaying SnackbarHost */ }
     )
-    {
-        Column(modifier = modifier.fillMaxSize().padding(it).padding(0.dp), horizontalAlignment = Alignment.CenterHorizontally)
+    {scaffoldPaddingValues ->
+        Column(modifier = modifier.fillMaxSize().padding(scaffoldPaddingValues), horizontalAlignment = Alignment.CenterHorizontally)
         {
-            // Screen Title
-            //Text(text = "Member List", style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold))
-            //Spacer(modifier = Modifier.height(12.dp))
-            // Search Field
-            Text(text = "e.g. YJVT for yogesh jayendra vyas town : thavad", fontSize = 10.sp)
+            Text(text = "e.g. YJVT for yogesh jayendra vyas, thavad", fontSize = 9.sp)
             OutlinedTextField(value = searchQuery, onValueChange = { viewModel.updateSearchQuery(it) }, label = { Text("Search by Short Name", fontSize = 10.sp) }, leadingIcon = { Icon(imageVector = Icons.Default.Person, contentDescription = null) }, singleLine = true, modifier = Modifier.fillMaxWidth())
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(4.dp))
             // ✅ Handle different states
             when (val state = memberState) {
                 is MemberState.Loading -> { CircularProgressIndicator(modifier = Modifier.padding(16.dp)) }

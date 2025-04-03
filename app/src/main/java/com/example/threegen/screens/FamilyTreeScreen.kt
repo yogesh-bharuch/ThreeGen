@@ -101,9 +101,9 @@ fun FamilyTreeScreen(
     /*// ✅ State variable to track the currently zoomed image URI.
     // When an image is clicked, this variable holds its URI to display it in a full-screen overlay.*/
     var zoomedImageUri by remember { mutableStateOf<String?>(null) }
-    Column(modifier = Modifier.fillMaxSize().padding(top = 40.dp).padding(bottom = 40.dp))
+    Column(modifier = Modifier.fillMaxSize().padding(top = 0.dp).padding(bottom = 0.dp))
     {
-        CustomTopBar(title = "Family Tree Root Members", navController = navController, onHomeClick = { navController.navigate(Home) })
+        CustomTopBar(title = "Family Tree Root Members", navController = navController, onBackClick = { navController.navigate(Home) })
         Box(modifier = modifier.fillMaxSize().padding(4.dp))
         {
             when (val state = memberState) {

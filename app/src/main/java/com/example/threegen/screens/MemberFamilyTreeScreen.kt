@@ -42,7 +42,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
@@ -52,7 +51,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
-import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -125,10 +123,10 @@ fun MemberFamilyTreeScreen(
 
     val rootMember = findRootMember(member, members)
     val descendants = rootMember?.let { findAllDescendants(it, members) } ?: emptyList()
-    Column(modifier = Modifier.fillMaxSize().padding(top = 40.dp).padding(bottom = 40.dp))
+    Column(modifier = Modifier.fillMaxSize().padding(top = 0.dp).padding(bottom = 0.dp))
     {
-        CustomTopBar(title = "Member Family Tree", navController = navController, onHomeClick = { navController.navigate(Home) })
-        Box(modifier = modifier.fillMaxSize().padding(16.dp))
+        CustomTopBar(title = "Member Family Tree", navController = navController, onBackClick = { navController.navigate(Home) })
+        Box(modifier = modifier.fillMaxSize().padding(4.dp))
         {
             when (val state = memberState) {
                 is MemberState.Loading -> {

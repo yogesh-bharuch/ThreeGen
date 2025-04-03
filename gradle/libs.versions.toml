@@ -1,5 +1,7 @@
 [versions]
 agp = "8.8.2"
+androidxMaterial3 = "1.2.0"
+androidxMaterial3Version = "1.1.2"
 coilComposeVersion = "2.6.0"
 firebaseBom = "33.9.0"
 kotlin = "2.0.0"
@@ -29,6 +31,8 @@ workRuntimeKtx = "2.10.0"
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-material-icons-extended = { module = "androidx.compose.material:material-icons-extended", version.ref = "materialIconsExtended" }
+androidx-material3-v112 = { module = "androidx.compose.material3:material3", version.ref = "androidxMaterial3Version" }
+androidx-material3-v120 = { module = "androidx.compose.material3:material3", version.ref = "androidxMaterial3" }
 androidx-room-ktx = { module = "androidx.room:room-ktx", version.ref = "roomRuntime" }
 androidx-room-room-compiler = { module = "androidx.room:room-compiler", version.ref = "roomRuntime" }
 androidx-room-runtime = { module = "androidx.room:room-runtime", version.ref = "roomRuntime" }
