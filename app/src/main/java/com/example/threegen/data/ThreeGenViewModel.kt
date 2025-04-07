@@ -55,6 +55,17 @@ class ThreeGenViewModel(
 
     var isSyncedInSession = false // is used in main activity to handle sync once only during app start
 
+    //var refreshMembersList = false // is used in ListMembers screen to refresh list after Sync press
+    private val _refreshMembersList = MutableStateFlow(false)
+    val refreshMembersList: StateFlow<Boolean> get() = _refreshMembersList
+
+    // Function to toggle refreshTrigger
+    fun refreshMembersList() {
+        _refreshMembersList.value = !_refreshMembersList.value
+    }
+
+
+
     // ✅ Holds the full list of members from the database
     private val _threeGenList = MutableStateFlow<List<ThreeGen>>(emptyList())
     val threeGenList: StateFlow<List<ThreeGen>> = _threeGenList

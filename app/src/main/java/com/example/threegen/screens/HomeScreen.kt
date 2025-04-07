@@ -1,6 +1,7 @@
 package com.example.threegen.screens
 
 import android.content.Context
+import android.util.Log
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
@@ -49,13 +50,17 @@ fun HomeScreen(
             //NavigationButton("Add New Member") { navController.navigate(AddMember) }
             NavigationButton("View All Members") { navController.navigate(ListScreen) }
             NavigationButton("Go To All Members Family Tree") { navController.navigate(MemberTree) }
-            NavigationButton("Go To Unused Members") { navController.navigate(UnusedMembers) }
+            //NavigationButton("Go To Unused Members") { navController.navigate(UnusedMembers) }
+            //NavigationButton("Go To Lab") { navController.navigate(Lab) }
             // ✅ Manual Sync Button
             Button(
                 onClick = {
                     // ✅ Trigger manual sync (no result callback needed)
                     //Log.d("FirestoreSync", "🔥 Manual sync triggered")
-                    WorkManagerHelper.manualSync(context)
+                    //WorkManagerHelper.manualSync(context)
+                    //syncFirestoreToRoom(lastSyncTime, isFirstRun, currentUserId)
+                    viewModel.syncFirestoreToRoom(0, false,
+                        callback = { Log.d("FirestoreSync", "✅ From Sync Data Button Home Screen : Updated last sync time: $it")})
                     // Store current time as new sync timestamp
                     val currentSyncTime = System.currentTimeMillis()
                     val sharedPreferences = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)

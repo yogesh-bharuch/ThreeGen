@@ -455,10 +455,11 @@ class ThreeGenRepository(private val threeGenDao: ThreeGenDao) {
             } else {
                 collectionRef  // First-time sync: fetch all members
             }*/
-            val query = if (!isFirstRun) {
+            val query = if (!isFirstRun || lastSyncTime > 0) {
                 collectionRef
                     .whereGreaterThan("updatedAt", lastSyncTime)
             } else {
+                Log.d("FirestoreSync", "✅ From Repository.syncFirestoreToRoom: isFirstRun = true or Manual Sync")
                 collectionRef  // First-time sync: fetch all members
             }
 
@@ -510,7 +511,7 @@ class ThreeGenRepository(private val threeGenDao: ThreeGenDao) {
             var updatedCount = 0
 
             members.forEach { member ->
-                if (member.parentID != null || member.spouseID != null) {
+                //if (member.parentID != null || member.spouseID != null) {
 
                     // ✅ Find the corresponding Room member by ID
                     val localMember = threeGenDao.getMemberByIdSync(member.id)
@@ -523,9 +524,9 @@ class ThreeGenRepository(private val threeGenDao: ThreeGenDao) {
                             spouseID = member.spouseID
                         )
                         updatedCount++
-                        Log.d("Repository", "✅ From Repository.updateRelationshipsInRoom: $updatedCount Members Updated for relationships i.e.: ${member.firstName} ${member.middleName} ${member.lastName}")
+                        Log.d("FirestoreSync", "✅ From Repository.updateRelationshipsInRoom: $updatedCount Members Updated for relationships i.e.: ${member.firstName} ${member.middleName} ${member.lastName}")
                     }
-                }
+                //}
             }
 
             //Log.d("FirestoreSync", "✅ Successfully updated $updatedCount relationships in Room")

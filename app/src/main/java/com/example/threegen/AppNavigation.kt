@@ -30,7 +30,7 @@ fun AppNavigation(
     val authState by authViewModel.authState.collectAsState()
 
     // Set the initial start destination based on direct Firebase check
-    val startDestination = if (isUserLoggedIn) Home else Login
+    val startDestination = if (isUserLoggedIn) ListScreen else Login
 
     // Check current user on app start to ensure correct state
     LaunchedEffect(Unit) {
@@ -41,7 +41,7 @@ fun AppNavigation(
     LaunchedEffect(authState) {
         if (authState is AuthState.Idle && !isUserLoggedIn) {
             navController.navigate(Login) {
-                popUpTo(Home) { inclusive = true }
+                popUpTo(ListScreen) { inclusive = true }
             }
         }
     }
@@ -63,6 +63,7 @@ fun AppNavigation(
             ListMembersScreen(
                 navController = navController,
                 viewModel = viewModel,
+                authViewModel = authViewModel,
                 modifier = modifier
             )
         }
@@ -136,9 +137,23 @@ fun AppNavigation(
                 modifier = modifier
             )
         }
+
+        // Lab screen
+        composable<Lab> {
+            //val arg = it.toRoute<MemberFamilyTree>()
+            LabScreen(
+                memberId = "Unknown", //arg.id,
+                navController = navController,
+                viewModel = viewModel,
+                authViewModel = authViewModel,
+                modifier = modifier
+            )
+        }
     }
 }
 
+@Serializable
+object Lab
 
 // Home Screen (No arguments)
 @Serializable

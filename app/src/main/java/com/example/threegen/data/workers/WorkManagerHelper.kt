@@ -197,6 +197,7 @@ object WorkManagerHelper {
      * - Triggered when user modifies data
      */
     fun manualSync(context: Context) {
+
         val constraints = Constraints.Builder()
             .setRequiredNetworkType(NetworkType.CONNECTED)    // Only sync with network
             .build()
