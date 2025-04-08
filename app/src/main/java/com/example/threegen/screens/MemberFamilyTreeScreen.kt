@@ -36,6 +36,7 @@ package com.example.threegen.screens
     Automatic Expansion of the member's lineage for better user experience.
     This design ensures a smooth, interactive experience when exploring the family tree.
 * */
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -47,8 +48,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FabPosition
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -58,34 +63,111 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
 import coil.compose.rememberAsyncImagePainter
 import com.example.threegen.Home
+import com.example.threegen.ListScreen
+import com.example.threegen.MemberDetail
 import com.example.threegen.MemberFamilyTree
 import com.example.threegen.data.ThreeGen
 import com.example.threegen.data.ThreeGenViewModel
+import com.example.threegen.login.AuthViewModel
 import com.example.threegen.util.CustomTopBar
 import com.example.threegen.util.MemberState
+import com.example.threegen.util.MyBottomBar
+import com.example.threegen.util.MyFloatingActionButton
+import com.example.threegen.util.MyTopAppBar
 
-//--------------------------
+/**
+ * Finds the root ancestor of a given member within a hierarchical tree structure.
+ *
+ * @param member The starting member whose root ancestor needs to be determined.
+ * @param members The list of all members in the tree.
+ * @return The root ancestor (ThreeGen object) or null if no valid root is found.
+ */
 fun findRootMember(member: ThreeGen?, members: List<ThreeGen>): ThreeGen? {
+    if (member == null || members.isEmpty()) return null
+
+    val visited = mutableSetOf<String>()
     var currentMember = member
+
     while (currentMember?.parentID != null) {
-        currentMember = members.find { it.id == currentMember?.parentID }
+        if (!visited.add(currentMember.id)) {
+            Log.w("findRootMember", "Cycle detected in tree structure!")
+            return null // Break if a cycle is detected
+        }
+        currentMember = members.find { it.id == currentMember!!.parentID }
     }
+
     return currentMember
 }
+/**
+ * Finds all descendants of a given root member in a hierarchical tree structure.
+ *
+ * @param rootMember The root member whose descendants need to be determined.
+ * @param members The list of all members in the tree.
+ * @return A list of descendants of the root member.
+ */
 fun findAllDescendants(rootMember: ThreeGen, members: List<ThreeGen>): List<ThreeGen> {
+    if (members.isEmpty()) return emptyList()
+
     val descendants = mutableListOf<ThreeGen>()
+    val visited = mutableSetOf<String>()
+    val memberMap = members.groupBy { it.parentID }
+
     fun findDescendants(member: ThreeGen) {
-        descendants.add(member)
-        members.filter { it.parentID == member.id }.forEach { findDescendants(it) }
+        if (visited.add(member.id)) { // Prevent infinite recursion caused by cycles
+            memberMap[member.id]?.forEach {
+                descendants.add(it)
+                findDescendants(it)
+            }
+        }
     }
+
     findDescendants(rootMember)
     return descendants
 }
+/**
+ * Finds all spouses within the tree structure originating from a given root member.
+ *
+ * @param rootMember The root member whose descendants' spouses need to be collected.
+ * @param members The list of all members in the tree.
+ * @return A list containing the spouses of the root member and all descendants.
+ */
+fun findSpousesInTree(rootMember: ThreeGen, members: List<ThreeGen>): List<ThreeGen> {
+    if (members.isEmpty()) return emptyList()
+
+    val spouses = mutableListOf<ThreeGen>()
+    val visited = mutableSetOf<String>()
+    val memberMap = members.groupBy { it.parentID }
+
+    fun findDescendantsAndSpouses(member: ThreeGen) {
+        if (visited.add(member.id)) { // Avoid cycles
+            // Add the spouse of the current member, if any
+            member.spouseID?.let { spouseId ->
+                members.find { it.id == spouseId }?.let { spouses.add(it) }
+            }
+
+            // Process children (descendants)
+            memberMap[member.id]?.forEach { findDescendantsAndSpouses(it) }
+        }
+    }
+
+    // Start the recursion with the root member
+    findDescendantsAndSpouses(rootMember)
+    return spouses
+}
+/**
+ * Retrieves a set of all member IDs from the root of the tree to the given member,
+ * including the member itself, by traversing upwards in the hierarchy.
+ *
+ * @param memberId The ID of the starting member whose lineage is to be expanded.
+ * @param members A list of all members in the tree.
+ * @return A set of member IDs from the root to the given member.
+ */
 fun getExpandedMemberIds(memberId: String, members: List<ThreeGen>): Set<String> {
     val expandedMemberIds = mutableSetOf<String>()
     var currentMember = members.find { it.id == memberId }
@@ -104,8 +186,32 @@ fun MemberFamilyTreeScreen(
     modifier: Modifier = Modifier,
     memberId: String,
     navController: NavHostController,
-    viewModel: ThreeGenViewModel = viewModel()
+    viewModel: ThreeGenViewModel = viewModel(),
+    authViewModel: AuthViewModel
 ) {
+
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
+
+    Scaffold(
+        topBar = { MyTopAppBar("Member Family Tree",navController, authViewModel, "ListScreen") },
+    /*
+        bottomBar = { MyBottomBar(navController,viewModel) },
+
+        floatingActionButton = { MyFloatingActionButton(onClick = {
+            navController.navigate(MemberDetail(id = ""))   }
+        ) },
+        floatingActionButtonPosition = FabPosition.End,  // Positions FAB at bottom-end
+    */
+        snackbarHost = { SnackbarHost(snackbarHostState) } // Manages snackbars
+    ) { paddingValues ->
+        MemberFamilyTreeScreenContent(paddingValues, navController, viewModel, memberId)
+    }
+}
+
+@Composable
+fun MemberFamilyTreeScreenContent(paddingValues: PaddingValues, navController: NavHostController, viewModel: ThreeGenViewModel, memberId: String) {
+
     // ✅ Trigger member fetch when the composable is first composed
     LaunchedEffect(Unit) {
         viewModel.fetchMembers() // ✅ Fetch members when screen loads
@@ -123,11 +229,13 @@ fun MemberFamilyTreeScreen(
 
     val rootMember = findRootMember(member, members)
     val descendants = rootMember?.let { findAllDescendants(it, members) } ?: emptyList()
-    Column(modifier = Modifier.fillMaxSize().padding(top = 0.dp).padding(bottom = 0.dp))
+    val totalSpousesInTheTree = rootMember?.let { findSpousesInTree(it, members) } ?: emptyList()
+
+
+    Column(modifier = Modifier.fillMaxSize().padding(paddingValues))
     {
-        CustomTopBar(title = "Member Family Tree", navController = navController, onBackClick = { navController.navigate(Home) })
-        Box(modifier = modifier.fillMaxSize().padding(4.dp))
-        {
+        //CustomTopBar(title = "Member Family Tree", navController = navController, onBackClick = { navController.navigate(ListScreen) })
+        //Box(modifier = Modifier.fillMaxSize().padding(top = 16.dp,bottom = 16.dp,start = 4.dp,end = 4.dp)) {
             when (val state = memberState) {
                 is MemberState.Loading -> {
                     CircularProgressIndicator(modifier = Modifier.padding(16.dp))
@@ -159,6 +267,9 @@ fun MemberFamilyTreeScreen(
                     } else
                     {
                         //displaying the FamilyTreeItem composable.
+                        val totalDescendants = descendants.size + 1
+                        val totalSpouses = totalSpousesInTheTree.size
+                        Text(text = "Total Members : $totalDescendants + Total Spouses: $totalSpouses", fontSize = 10.sp, modifier = Modifier.padding(start = 8.dp))
                         rootMember?.let {
                             LazyColumn(modifier = Modifier.fillMaxSize()) {
                                 /*item {
@@ -197,19 +308,19 @@ fun MemberFamilyTreeScreen(
                     )
                 }
             }
-        }
+        //}
     }
 }
 
 @Composable
 fun CollapsibleFamilyTreeItem(navController: NavHostController, member: ThreeGen, members: List<ThreeGen>, indent: Int = 0, generation: Int = 1, onImageClick: (String) -> Unit, expandedMemberIds: Set<String>, selectedMemberId: String) {
     val isDarkTheme = isSystemInDarkTheme()
-    val generationColors = if (isDarkTheme) {
-        listOf(
-            Color(0xFF263238), Color(0xFF37474F), Color(0xFF455A64),
-            Color(0xFF1C313A), Color(0xFF546E7A), Color(0xFF2C3E50), Color(0xFF3E4A59)
-        )
-    } else { listOf(Color(0xFFBBDEFB), Color(0xFFC8E6C9), Color(0xFFFFF9C4), Color(0xFFFFCCBC), Color(0xFFD1C4E9), Color(0xFFFFF176), Color(0xFFFF8A65)) }
+    val generationColors = if (isDarkTheme)
+    {
+        listOf(Color(0xFF263238), Color(0xFF37474F), Color(0xFF455A64), Color(0xFF1C313A), Color(0xFF546E7A), Color(0xFF2C3E50), Color(0xFF3E4A59))
+    } else {
+        listOf(Color(0xFFBBDEFB), Color(0xFFC8E6C9), Color(0xFFFFF9C4), Color(0xFFFFCCBC), Color(0xFFD1C4E9), Color(0xFFFFF176), Color(0xFFFF8A65))
+    } // card colors based on generation level
     val backgroundColor = generationColors[indent % generationColors.size]
     var expanded by remember { mutableStateOf(expandedMemberIds.contains(member.id)) }
     val textColor = if (member.id == selectedMemberId) Color.Red else Color.Black
@@ -230,7 +341,8 @@ fun CollapsibleFamilyTreeItem(navController: NavHostController, member: ThreeGen
                             .padding(0.dp)
                             .clickable { onImageClick(member.imageUri ?: "") }
                     )
-                } else {
+                } else
+                {
                     Icon(imageVector = Icons.Default.Person, contentDescription = "Default Person Icon", modifier = Modifier
                         .size(48.dp)
                         .clip(CircleShape)
@@ -241,7 +353,9 @@ fun CollapsibleFamilyTreeItem(navController: NavHostController, member: ThreeGen
                 Column(modifier = Modifier.weight(1f))
                 {
                     Text("Generation: $generation", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
-                    Text( "${member.firstName} ${member.middleName} ${member.lastName}", style = MaterialTheme.typography.bodyMedium.copy(color = textColor), fontWeight = FontWeight.Bold)
+                    val isAlive = if (member.isAlive) "" else " (Late)"
+                    Text("${member.childNumber}. ${member.firstName} ${member.middleName} ${member.lastName}$isAlive", style = MaterialTheme.typography.bodyMedium.copy(color = textColor), fontWeight = FontWeight.Bold)
+                    //Text( "${member.firstName} ${member.middleName} ${member.lastName}", style = MaterialTheme.typography.bodyMedium.copy(color = textColor), fontWeight = FontWeight.Bold)
                     Text("Town: ${member.town}", color = textColor)
                 } // Member display Section
             } // Member display Section

@@ -5,6 +5,7 @@ import android.util.Log
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.AddToHomeScreen
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.AccountTree
@@ -22,8 +23,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.ViewModel
 import androidx.navigation.NavHostController
 import com.example.threegen.Home
+import com.example.threegen.ListScreen
 import com.example.threegen.MemberTree
 import com.example.threegen.data.ThreeGenViewModel
 import com.example.threegen.login.AuthViewModel
@@ -46,8 +49,8 @@ fun MyTopAppBar(title: String, navController: NavHostController, authViewModel: 
             }
         },
         actions = {
-            IconButton(onClick = { authViewModel.logout() }) {
-                Icon(imageVector = Icons.AutoMirrored.Filled.Logout, contentDescription = "Logout")
+            IconButton(onClick = { navController.navigate(ListScreen) }) {
+                Icon(imageVector = Icons.Default.Home, contentDescription = "Home")
             }
         }
         /*actions = {
@@ -68,7 +71,7 @@ fun MyTopAppBar(title: String, navController: NavHostController, authViewModel: 
 }
 
 @Composable
-fun MyBottomBar(navController: NavHostController, viewModel: ThreeGenViewModel) {
+fun MyBottomBar(navController: NavHostController, viewModel: ThreeGenViewModel, authViewModel: AuthViewModel) {
     NavigationBar {
         NavigationBarItem(
             icon = { Icon(Icons.Default.Sync, contentDescription = "Sync Data") },
@@ -90,9 +93,16 @@ fun MyBottomBar(navController: NavHostController, viewModel: ThreeGenViewModel) 
         NavigationBarItem(
             //icon = { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Go Back") },
             icon = { Icon(Icons.Default.AccountTree, contentDescription = "Family Tree") },
-            label = { Text("All Members Tree") },
+            label = { Text("All Members") },
             selected = false,
             onClick = { navController.navigate(MemberTree) }
+        )
+        NavigationBarItem(
+            //icon = { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Go Back") },
+            icon = { Icon(imageVector = Icons.AutoMirrored.Filled.Logout, contentDescription = "Logout") },
+            label = { Text("Sign out") },
+            selected = false,
+            onClick = { authViewModel.logout() }
         )
     }
 }

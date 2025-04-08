@@ -56,6 +56,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import coil.compose.rememberAsyncImagePainter
 import com.example.threegen.Home
+import com.example.threegen.ListScreen
 import com.example.threegen.MemberFamilyTree
 import com.example.threegen.SelectMemberParent
 import com.example.threegen.SelectMemberSpouse
@@ -80,7 +81,7 @@ fun MemberDetailScreen(memberId: String, navController: NavHostController, viewM
     }
     Column(modifier = Modifier.fillMaxSize().padding(top = 40.dp).padding(bottom = 40.dp))
     {
-        CustomTopBar(title = "Member Details", navController = navController, onBackClick = { navController.navigate(Home) })
+        CustomTopBar(title = "Member Details", navController = navController, onBackClick = { navController.navigate(ListScreen) })
         Box(modifier = Modifier.fillMaxSize().padding(1.dp))
         {
             when (val state = memberState) {

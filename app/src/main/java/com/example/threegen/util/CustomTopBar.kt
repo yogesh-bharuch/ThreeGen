@@ -21,6 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
 import com.example.threegen.Home
+import com.example.threegen.ListScreen
 
 
 @Composable
@@ -51,8 +52,8 @@ fun CustomTopBar(title: String, navController: NavHostController, onBackClick: (
 
             // Home Icon
             IconButton(onClick = {
-                navController.navigate(Home) {
-                    popUpTo(Home) { inclusive = true }  // Clears back stack
+                navController.navigate(ListScreen) {
+                    popUpTo(ListScreen) { inclusive = true }  // Clears back stack
                     launchSingleTop = true  // Prevents multiple instances
                     restoreState = true  // Preserves state
                 }

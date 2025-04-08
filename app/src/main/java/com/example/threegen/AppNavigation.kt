@@ -1,5 +1,6 @@
 package com.example.threegen
 
+import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -28,24 +29,39 @@ fun AppNavigation(
     // Direct Firebase user check to avoid unnecessary navigation to Login
     val isUserLoggedIn = authViewModel.currentUser != null
     val authState by authViewModel.authState.collectAsState()
-
+    Log.d("Navigation", "authState: $authState")
     // Set the initial start destination based on direct Firebase check
-    val startDestination = if (isUserLoggedIn) ListScreen else Login
+    val startDestination = Login //if (isUserLoggedIn) ListScreen else Login
 
     // Check current user on app start to ensure correct state
     LaunchedEffect(Unit) {
-        authViewModel.checkCurrentUser()
+        //authViewModel.checkCurrentUser()
+        authViewModel.refreshUser()
     }
-
+    Log.d("MyNavigation", "authState: $authState")
     // Handle only explicit logout scenario
     LaunchedEffect(authState) {
-        if (authState is AuthState.Idle && !isUserLoggedIn) {
+        when (authState) {
+            is AuthState.Success -> {
+                navController.navigate(ListScreen) {
+                    popUpTo(Login) { inclusive = true }
+                }
+            }
+            is AuthState.Idle -> {
+                navController.navigate(Login) {
+                    popUpTo(ListScreen) { inclusive = true }
+                }
+            }
+            else -> Unit // No action for other states
+        }
+
+        /*if (authState is AuthState.Idle && !isUserLoggedIn) {
             navController.navigate(Login) {
                 popUpTo(ListScreen) { inclusive = true }
             }
-        }
+        }*/
     }
-
+    Log.d("MyNavigation", "start destination: $startDestination")
     NavHost(navController = navController, startDestination = startDestination) {
 
         // Home screen route
@@ -114,7 +130,8 @@ fun AppNavigation(
             FamilyTreeScreen(
                 modifier = modifier,
                 navController = navController,
-                viewModel = viewModel
+                viewModel = viewModel,
+                authViewModel = authViewModel,
             )
         }
 
@@ -134,6 +151,7 @@ fun AppNavigation(
                 memberId = arg.id,
                 navController = navController,
                 viewModel = viewModel,
+                authViewModel = authViewModel,
                 modifier = modifier
             )
         }

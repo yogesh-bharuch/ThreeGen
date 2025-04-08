@@ -14,6 +14,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.threegen.Home
+import com.example.threegen.ListScreen
 import com.example.threegen.Login
 import com.example.threegen.Registration
 import com.example.threegen.util.showToast
@@ -31,7 +32,7 @@ fun LoginScreen(
     Log.d("LoginScreen", "AuthState: $authState")
     LaunchedEffect(authState) {
         if (authState is AuthState.Success) {
-            navController.navigate(Home) {
+            navController.navigate(ListScreen) {
                 popUpTo(Login) { inclusive = true }
             }
         }

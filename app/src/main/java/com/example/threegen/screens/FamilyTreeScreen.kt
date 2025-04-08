@@ -30,6 +30,7 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -44,8 +45,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FabPosition
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -53,6 +58,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -61,23 +67,52 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
 import com.example.threegen.Home
+import com.example.threegen.ListScreen
+import com.example.threegen.MemberDetail
 import com.example.threegen.MemberFamilyTree
 import com.example.threegen.data.ThreeGen
 import com.example.threegen.data.ThreeGenViewModel
+import com.example.threegen.login.AuthViewModel
 import com.example.threegen.util.CustomTopBar
 import com.example.threegen.util.MemberState
+import com.example.threegen.util.MyBottomBar
+import com.example.threegen.util.MyFloatingActionButton
+import com.example.threegen.util.MyTopAppBar
 
 @Composable
 fun FamilyTreeScreen(
     modifier: Modifier = Modifier,
     navController: NavHostController,
-    viewModel: ThreeGenViewModel = viewModel()
+    viewModel: ThreeGenViewModel = viewModel(),
+    authViewModel: AuthViewModel
 ) {
+
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
+
+    Scaffold(
+        topBar = { MyTopAppBar("Family Tree Root Members",navController, authViewModel, "ListScreen") },
+    /*
+            bottomBar = { MyBottomBar(navController,viewModel) },
+            floatingActionButton = { MyFloatingActionButton(onClick = {
+                navController.navigate(MemberDetail(id = ""))   }
+            ) },
+            floatingActionButtonPosition = FabPosition.End,  // Positions FAB at bottom-end
+    */
+        snackbarHost = { SnackbarHost(snackbarHostState) } // Manages snackbars
+    ) { paddingValues ->
+        FamilyTreeScreenContent(paddingValues, navController, viewModel)
+    }
+}
+
+@Composable
+fun FamilyTreeScreenContent(paddingValues: PaddingValues, navController: NavHostController, viewModel: ThreeGenViewModel) {
     // ✅ Trigger member fetch when the composable is first composed
     LaunchedEffect(Unit) {
         viewModel.fetchMembers()
@@ -89,23 +124,21 @@ fun FamilyTreeScreen(
         is MemberState.SuccessList -> state.members
         else -> emptyList()
     }
-
     /*// ✅ Extract all unique parent IDs from the members list.
     // This helps in identifying which members have children and assists in structuring the tree.*/
     val parentIds = remember(members) { members.mapNotNull { it.parentID }.toSet() }
-
     /*// ✅ Filter and identify root members for the family tree.
     //Members who do not have a parent ID, but are explicitly listed in parentid column of members.*/
     val rootMembers =  members.filter { it.parentID == null && it.id in parentIds }
-
     /*// ✅ State variable to track the currently zoomed image URI.
     // When an image is clicked, this variable holds its URI to display it in a full-screen overlay.*/
     var zoomedImageUri by remember { mutableStateOf<String?>(null) }
-    Column(modifier = Modifier.fillMaxSize().padding(top = 0.dp).padding(bottom = 0.dp))
+    var totalMembers = 0
+
+    Column(modifier = Modifier.fillMaxSize().padding(paddingValues))
     {
-        CustomTopBar(title = "Family Tree Root Members", navController = navController, onBackClick = { navController.navigate(Home) })
-        Box(modifier = modifier.fillMaxSize().padding(4.dp))
-        {
+        //CustomTopBar(title = "Family Tree Root Members", navController = navController, onBackClick = { navController.navigate(ListScreen) })
+        //Box(modifier = Modifier.fillMaxSize().padding(0.dp)) {
             when (val state = memberState) {
                 is MemberState.Loading -> {
                     CircularProgressIndicator(modifier = Modifier.padding(16.dp))
@@ -135,6 +168,8 @@ fun FamilyTreeScreen(
                     if (state.members.isEmpty()) {
                         Text(text = "No matching members found", color = Color.Gray, modifier = Modifier.padding(16.dp))
                     } else {
+                        totalMembers = rootMembers.size
+                        Text(text = "Total Root Members : $totalMembers", fontSize = 10.sp, modifier = Modifier.padding(start = 8.dp))
                         LazyColumn(modifier = Modifier.fillMaxSize()) {
                             items(rootMembers) { member ->
                                 FamilyTreeItem(navController = navController, member = member, members = members, onImageClick = { uri -> zoomedImageUri = uri })
@@ -159,7 +194,7 @@ fun FamilyTreeScreen(
                     )
                 }
             } // display image in overlay
-        }
+        //}
     }
 }
 
@@ -198,7 +233,8 @@ fun FamilyTreeItem(navController: NavController, member: ThreeGen, members: List
                 Column(modifier = Modifier.weight(1f))
                 {
                     Text("Generation: $generation", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
-                    Text("${member.firstName} ${member.middleName} ${member.lastName}", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                    val isAlive = if (member.isAlive) "" else " (Late)"
+                    Text("${member.childNumber}. ${member.firstName} ${member.middleName} ${member.lastName}$isAlive", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
                     Text("Town: ${member.town}")
                 } // member name and town display
             } // Member display Section

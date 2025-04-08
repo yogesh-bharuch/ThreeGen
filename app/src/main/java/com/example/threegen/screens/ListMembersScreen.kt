@@ -48,7 +48,7 @@ fun ListMembersScreen(
 
     Scaffold(
         topBar = { MyTopAppBar("Members List",navController, authViewModel, "ListScreen") },
-        bottomBar = { MyBottomBar(navController,viewModel) },
+        bottomBar = { MyBottomBar(navController,viewModel, authViewModel) },
 
         floatingActionButton = { MyFloatingActionButton(onClick = {
             navController.navigate(MemberDetail(id = ""))   }
@@ -62,8 +62,6 @@ fun ListMembersScreen(
 
 @Composable
 fun ListMembersScreenContent(paddingValues: PaddingValues, navController: NavHostController, viewModel: ThreeGenViewModel) {
-
-
     val memberState by viewModel.memberState.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
     var selectedImageUri by remember { mutableStateOf<String?>(null) }
@@ -73,7 +71,7 @@ fun ListMembersScreenContent(paddingValues: PaddingValues, navController: NavHos
 
     LaunchedEffect(refreshMembersList)
     {
-        delay(2000)
+        delay(500)
         viewModel.fetchMembers() // ✅ Fetch members when screen loads
     }
 
