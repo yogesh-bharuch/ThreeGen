@@ -201,11 +201,12 @@ fun FamilyTreeScreenContent(paddingValues: PaddingValues, navController: NavHost
 @Composable
 fun FamilyTreeItem(navController: NavController, member: ThreeGen, members: List<ThreeGen>, indent: Int = 0, generation: Int = 1, onImageClick: (String) -> Unit) {
     val isDarkTheme = isSystemInDarkTheme()
-    val generationColors = if (isDarkTheme) {
+    val generationColors = if (isDarkTheme)
+    {
         listOf(Color(0xFF263238), Color(0xFF37474F), Color(0xFF455A64), Color(0xFF1C313A), Color(0xFF546E7A), Color(0xFF2C3E50), Color(0xFF3E4A59))
     } else {
         listOf(Color(0xFFBBDEFB), Color(0xFFC8E6C9), Color(0xFFFFF9C4), Color(0xFFFFCCBC), Color(0xFFD1C4E9), Color(0xFFFFF176), Color(0xFFFF8A65))
-    }
+    } // card color generation wise
     val backgroundColor = generationColors[indent % generationColors.size]
     var expanded by remember { mutableStateOf(false) }
 
