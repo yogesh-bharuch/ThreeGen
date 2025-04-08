@@ -87,12 +87,12 @@ fun ListMembersScreenContent(paddingValues: PaddingValues, navController: NavHos
             horizontalArrangement = Arrangement.SpaceEvenly,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(1.dp)
+                .padding(2.dp)
         ) {
             searchOptions.forEach { option ->
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(horizontal = 4.dp)
+                    modifier = Modifier.padding(horizontal = 2.dp)
                 ) {
                     RadioButton(
                         selected = (selectedSearchOption == option),
@@ -100,14 +100,14 @@ fun ListMembersScreenContent(paddingValues: PaddingValues, navController: NavHos
                     )
                     Text(
                         text = option,
-                        fontSize = 10.sp,
-                        modifier = Modifier.padding(start = 4.dp)
+                        fontSize = 9.sp,
+                        modifier = Modifier.padding(start = 2.dp)
                     )
                 }
             }
         }
 
-        OutlinedTextField(value = searchQuery, onValueChange = { viewModel.updateSearchQuery(it) }, label = { Text("Search by Short Name", fontSize = 10.sp) }, leadingIcon = { Icon(imageVector = Icons.Default.Search, contentDescription = null) }, singleLine = true, modifier = Modifier.fillMaxWidth().padding(start = 8.dp, end = 8.dp))
+        OutlinedTextField(value = searchQuery, onValueChange = { viewModel.updateSearchQuery(it) }, label = { Text(selectedSearchOption, fontSize = 10.sp) }, leadingIcon = { Icon(imageVector = Icons.Default.Search, contentDescription = null) }, singleLine = true, modifier = Modifier.fillMaxWidth().padding(start = 8.dp, end = 8.dp))
         //Spacer(modifier = Modifier.height(4.dp))
         // ✅ Handle different states
         when (val state = memberState) {
