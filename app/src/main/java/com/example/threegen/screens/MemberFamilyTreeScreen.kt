@@ -232,7 +232,7 @@ fun MemberFamilyTreeScreenContent(paddingValues: PaddingValues, navController: N
     val totalSpousesInTheTree = rootMember?.let { findSpousesInTree(it, members) } ?: emptyList()
 
 
-    Column(modifier = Modifier.fillMaxSize().padding(paddingValues))
+    Column(modifier = Modifier.fillMaxSize().padding(paddingValues).padding(start = 0.dp, end = 8.dp))
     {
         //CustomTopBar(title = "Member Family Tree", navController = navController, onBackClick = { navController.navigate(ListScreen) })
         //Box(modifier = Modifier.fillMaxSize().padding(top = 16.dp,bottom = 16.dp,start = 4.dp,end = 4.dp)) {

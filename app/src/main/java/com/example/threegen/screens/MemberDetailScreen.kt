@@ -114,7 +114,11 @@ fun MemberDetailScreenContent(paddingValues: PaddingValues, memberId: String, na
         //Log.d("MemberDetailScreen", "Calling fetchMemberDetails for ID from launched effect : $memberState")
         viewModel.fetchMemberDetails(memberId)
     }
-    Column(modifier = Modifier.fillMaxSize().padding(paddingValues))
+    Column(modifier = Modifier
+        .fillMaxSize()
+        .fillMaxWidth()
+        .padding(paddingValues)
+        .padding(start = 8.dp, end = 8.dp))
     {
         //CustomTopBar(title = "Member Details", navController = navController, onBackClick = { navController.navigate(ListScreen) })
         //Box(modifier = Modifier.fillMaxSize().padding(1.dp)) {

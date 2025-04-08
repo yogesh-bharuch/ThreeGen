@@ -135,7 +135,7 @@ fun FamilyTreeScreenContent(paddingValues: PaddingValues, navController: NavHost
     var zoomedImageUri by remember { mutableStateOf<String?>(null) }
     var totalMembers = 0
 
-    Column(modifier = Modifier.fillMaxSize().padding(paddingValues))
+    Column(modifier = Modifier.fillMaxSize().padding(paddingValues).padding(start = 0.dp, end = 8.dp))
     {
         //CustomTopBar(title = "Family Tree Root Members", navController = navController, onBackClick = { navController.navigate(ListScreen) })
         //Box(modifier = Modifier.fillMaxSize().padding(0.dp)) {
