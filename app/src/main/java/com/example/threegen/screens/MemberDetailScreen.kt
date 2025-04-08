@@ -32,6 +32,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -40,6 +43,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -66,11 +70,42 @@ import com.example.threegen.util.CustomTopBar
 import com.example.threegen.util.MemberState
 import com.example.threegen.util.SnackbarManager
 import com.example.threegen.data.workers.WorkManagerHelper
+import com.example.threegen.login.AuthViewModel
+import com.example.threegen.util.MyTopAppBar
 import com.example.threegen.util.formatDateTime
 
 @Composable
-fun MemberDetailScreen(memberId: String, navController: NavHostController, viewModel: ThreeGenViewModel, onNavigateBack: () -> Unit, modifier: Modifier = Modifier)
+fun MemberDetailScreen(
+    memberId: String,
+    navController: NavHostController,
+    viewModel: ThreeGenViewModel,
+    authViewModel: AuthViewModel,
+    onNavigateBack: () -> Unit,
+    modifier: Modifier = Modifier
+)
 {
+
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
+
+    Scaffold(
+        topBar = { MyTopAppBar("Member Details",navController, authViewModel, "ListScreen") },
+        /*
+                bottomBar = { MyBottomBar(navController,viewModel) },
+                floatingActionButton = { MyFloatingActionButton(onClick = {
+                    navController.navigate(MemberDetail(id = ""))   }
+                ) },
+                floatingActionButtonPosition = FabPosition.End,  // Positions FAB at bottom-end
+        */
+        snackbarHost = { SnackbarHost(snackbarHostState) } // Manages snackbars
+    ) { paddingValues ->
+        MemberDetailScreenContent(paddingValues, memberId, navController, viewModel)
+    }
+}
+
+@Composable
+fun MemberDetailScreenContent(paddingValues: PaddingValues, memberId: String, navController: NavHostController, viewModel: ThreeGenViewModel) {
+
     val memberState by viewModel.memberState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     var zoomedImageUri by remember { mutableStateOf<String?>(null) }
@@ -79,11 +114,10 @@ fun MemberDetailScreen(memberId: String, navController: NavHostController, viewM
         //Log.d("MemberDetailScreen", "Calling fetchMemberDetails for ID from launched effect : $memberState")
         viewModel.fetchMemberDetails(memberId)
     }
-    Column(modifier = Modifier.fillMaxSize().padding(top = 40.dp).padding(bottom = 40.dp))
+    Column(modifier = Modifier.fillMaxSize().padding(paddingValues))
     {
-        CustomTopBar(title = "Member Details", navController = navController, onBackClick = { navController.navigate(ListScreen) })
-        Box(modifier = Modifier.fillMaxSize().padding(1.dp))
-        {
+        //CustomTopBar(title = "Member Details", navController = navController, onBackClick = { navController.navigate(ListScreen) })
+        //Box(modifier = Modifier.fillMaxSize().padding(1.dp)) {
             when (val state = memberState) {
                 is MemberState.Loading -> LoadingState()
                 is MemberState.Empty -> EmptyState() //SuccessList
@@ -113,17 +147,18 @@ fun MemberDetailScreen(memberId: String, navController: NavHostController, viewM
                                         lastName = editableMember.value.lastName, onLastNameChange = { editableMember.value = editableMember.value.copy(lastName = it) },
                                         town = editableMember.value.town, onTownChange = { editableMember.value = editableMember.value.copy(town = it) },
                                         childNumber = editableMember.value.childNumber?.toString() ?: "", onChildNumberChange = { editableMember.value = editableMember.value.copy(childNumber = it.toIntOrNull()) },
-                                        comment = editableMember.value.comment ?: "", onCommentChange = { editableMember.value = editableMember.value.copy(comment = it) }
-                                    )
+                                        comment = editableMember.value.comment ?: "", onCommentChange = { editableMember.value = editableMember.value.copy(comment = it) })
                                 }
                             } // ✅ AddImage, Editable Member Details
                             item {
-                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween)
+                                {
                                     Text(text = "Created At: ${formatDateTime(member.createdAt)}", fontSize = 8.sp)
                                     Text(text = "Short Name: ${member.shortName}", fontSize = 8.sp, fontWeight = FontWeight.Bold)
-                                }
+                                } // createdAt, ShortName
                                 Spacer(modifier = Modifier.height(8.dp))
                                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                                    // save button
                                     Button(
                                         onClick = {
                                             if (memberId == ""){
@@ -152,7 +187,7 @@ fun MemberDetailScreen(memberId: String, navController: NavHostController, viewM
                                     ) { Text(text = "Save") }
 
                                     Spacer(modifier = Modifier.width(8.dp))
-
+                                    // cancel Button
                                     Button(
                                         onClick = {
                                             // Handle cancel action
@@ -180,7 +215,7 @@ fun MemberDetailScreen(memberId: String, navController: NavHostController, viewM
                         zoomedImageUri?.let { ImageOverlay(it) { zoomedImageUri = null } }
                 }
             } // when block in member detail screen
-        }
+        //}
     } // Top Most Column in MemberDetailScreen
 } // MemberDetailScreen
 
@@ -219,27 +254,15 @@ fun SuccessList() {
 // ✅ Image Zoom Overlay
 @Composable
 fun ImageOverlay(imageUri: String, onClose: () -> Unit) {
-    Box(
-        modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.8f)).clickable { onClose() },
-        contentAlignment = Alignment.Center
-    ) {
+    Box(modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.8f))
+            .clickable { onClose() }, contentAlignment = Alignment.Center) {
         Image(
             painter = rememberAsyncImagePainter(imageUri),
             contentDescription = "Zoomed Image",
             modifier = Modifier.fillMaxWidth().padding(16.dp)
         )
-    }
-}
-
-// ✅ Page Header with Title
-@Composable
-fun PageHeader() {
-    Column {
-        Text(
-            text = "Member Detail",
-            style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold)
-        )
-        Spacer(modifier = Modifier.height(8.dp))
     }
 }
 

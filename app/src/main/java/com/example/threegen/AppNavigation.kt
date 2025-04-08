@@ -92,6 +92,7 @@ fun AppNavigation(
                     memberId = it1,
                     navController = navController,
                     viewModel = viewModel,
+                    authViewModel = authViewModel,
                     modifier = modifier,
                     onNavigateBack = { navController.popBackStack() } // ✅ Corrected placement
                 )
