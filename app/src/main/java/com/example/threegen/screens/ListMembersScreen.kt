@@ -78,6 +78,35 @@ fun ListMembersScreenContent(paddingValues: PaddingValues, navController: NavHos
     Column(modifier = Modifier.fillMaxSize().padding(paddingValues))
     {
         Text(text = "e.g. YJVT for yogesh jayendra vyas, thavad", fontSize = 9.sp, modifier = Modifier.padding(start = 8.dp))
+        // Option Buttons Group
+        val searchOptions = listOf("FirstName", "ShortName", "NoFilter")
+        var selectedSearchOption by remember { mutableStateOf("FirstName") }
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(1.dp)
+        ) {
+            searchOptions.forEach { option ->
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(horizontal = 4.dp)
+                ) {
+                    RadioButton(
+                        selected = (selectedSearchOption == option),
+                        onClick = { selectedSearchOption = option } // Update selected option
+                    )
+                    Text(
+                        text = option,
+                        fontSize = 10.sp,
+                        modifier = Modifier.padding(start = 4.dp)
+                    )
+                }
+            }
+        }
+
         OutlinedTextField(value = searchQuery, onValueChange = { viewModel.updateSearchQuery(it) }, label = { Text("Search by Short Name", fontSize = 10.sp) }, leadingIcon = { Icon(imageVector = Icons.Default.Search, contentDescription = null) }, singleLine = true, modifier = Modifier.fillMaxWidth().padding(start = 8.dp, end = 8.dp))
         //Spacer(modifier = Modifier.height(4.dp))
         // ✅ Handle different states
@@ -107,17 +136,10 @@ fun ListMembersScreenContent(paddingValues: PaddingValues, navController: NavHos
                 )
             }
             is MemberState.SuccessList -> {
-                val filteredMembers = if (searchQuery.isBlank()) {
-                    totalMembers = state.members.size
-                    //Text(text = "Total Members : $totalMembers", fontSize = 10.sp)
-                    state.members // ✅ Show all members when search is empty
-                } else {
-                    state.members.filter {
-                        it.shortName.contains(
-                            searchQuery,
-                            ignoreCase = true
-                        )
-                    }
+                val filteredMembers = when (selectedSearchOption){
+                    "FirstName" -> state.members.filter { it.firstName.startsWith(searchQuery, ignoreCase = true) }
+                    "ShortName" -> state.members.filter { it.shortName.startsWith(searchQuery, ignoreCase = true) }
+                    else -> state.members
                 }
 
                 if (filteredMembers.isEmpty()) {
