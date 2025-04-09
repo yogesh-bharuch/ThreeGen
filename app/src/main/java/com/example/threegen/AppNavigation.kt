@@ -104,7 +104,8 @@ fun AppNavigation(
             SelectMemberParentScreen(
                 navController = navController,
                 viewModel = viewModel,
-                modifier = modifier
+                modifier = modifier,
+                authViewModel = authViewModel,
             )
         }
 
@@ -113,7 +114,8 @@ fun AppNavigation(
             SelectMemberSpouseScreen(
                 navController = navController,
                 viewModel = viewModel,
-                modifier = modifier
+                modifier = modifier,
+                authViewModel = authViewModel
             )
         }
 

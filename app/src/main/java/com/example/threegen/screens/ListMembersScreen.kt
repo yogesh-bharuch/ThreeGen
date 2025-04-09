@@ -68,7 +68,6 @@ fun ListMembersScreenContent(paddingValues: PaddingValues, navController: NavHos
     var totalMembers = 0
     val refreshMembersList by viewModel.refreshMembersList.collectAsState()
 
-
     LaunchedEffect(refreshMembersList)
     {
         delay(500)
@@ -81,14 +80,10 @@ fun ListMembersScreenContent(paddingValues: PaddingValues, navController: NavHos
         // Option Buttons Group
         val searchOptions = listOf("FirstName", "ShortName", "NoFilter")
         var selectedSearchOption by remember { mutableStateOf("FirstName") }
-
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            modifier = Modifier
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceEvenly, modifier = Modifier
                 .fillMaxWidth()
-                .padding(2.dp)
-        ) {
+                .padding(2.dp))
+        {
             searchOptions.forEach { option ->
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -105,7 +100,7 @@ fun ListMembersScreenContent(paddingValues: PaddingValues, navController: NavHos
                     )
                 }
             }
-        }
+        } // searchOptions
 
         OutlinedTextField(value = searchQuery, onValueChange = { viewModel.updateSearchQuery(it) }, label = { Text(selectedSearchOption, fontSize = 10.sp) }, leadingIcon = { Icon(imageVector = Icons.Default.Search, contentDescription = null) }, singleLine = true, modifier = Modifier.fillMaxWidth().padding(start = 8.dp, end = 8.dp))
         //Spacer(modifier = Modifier.height(4.dp))
@@ -152,7 +147,7 @@ fun ListMembersScreenContent(paddingValues: PaddingValues, navController: NavHos
                             MemberListItem(
                                 member = member,
                                 onItemClick = {
-                                    //navController.navigate(MemberDetail(id = ""))
+                                    viewModel.updateSearchQuery("")
                                     navController.navigate(MemberDetail(id = member.id))
                                     viewModel.updateSearchQuery("")
                                 },
@@ -188,35 +183,23 @@ fun MemberListItem(member: ThreeGen, onItemClick: () -> Unit, onImageClick: (Str
     {
         // display image
         Row(modifier = Modifier.padding(start = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            if (!member.imageUri.isNullOrEmpty()) {
-                Image(
-                    painter = rememberAsyncImagePainter(member.imageUri),
-                    contentDescription = "Profile Image",
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .size(56.dp)
-                        .clip(CircleShape)
-                        .clickable { onImageClick(member.imageUri!!) }
-                )
+            if (!member.imageUri.isNullOrEmpty())
+            {
+                Image(painter = rememberAsyncImagePainter(member.imageUri), contentDescription = "Profile Image", contentScale = ContentScale.Crop, modifier = Modifier.size(56.dp).clip(CircleShape)
+                    .clickable { onImageClick(member.imageUri!!) })
             } else {
-                Icon(
-                    imageVector = Icons.Default.Person,
-                    contentDescription = "No Profile Image",
-                    modifier = Modifier
-                        .size(56.dp)
-                        .clip(CircleShape),
-                    tint = Color.Gray
-                )
-            }
-            Column(modifier = Modifier.padding(start = 8.dp)) {
+                Icon(imageVector = Icons.Default.Person, contentDescription = "No Profile Image", modifier = Modifier.size(56.dp).clip(CircleShape), tint = Color.Gray)
+            } // display image
+            Column(modifier = Modifier.padding(start = 8.dp))
+            {
                 Text(text = "id: ${member.id}", fontSize = 7.5.sp)
-                //Spacer(modifier = Modifier.height(1.dp)) // Add spacing between texts
                 Text(text = "Short Name: ${member.shortName}", fontSize = 12.sp)
-            }
+            } // display shortname, id
 
         }
         //Spacer(modifier = Modifier.width(4.dp))
         Row(modifier = Modifier.padding(start = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+            // ✅ Member details
             Column(modifier = Modifier.padding(start = 4.dp, end = 4.dp)) {
                 val isAlive = if (member.isAlive) "" else " (Late)"
                 val childNumber = " (Child# ${member.childNumber.toString()})"

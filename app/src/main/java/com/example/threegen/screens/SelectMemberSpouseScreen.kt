@@ -24,7 +24,9 @@ import coil.compose.rememberAsyncImagePainter
 import com.example.threegen.SelectMemberParent
 import com.example.threegen.data.ThreeGen
 import com.example.threegen.data.ThreeGenViewModel
+import com.example.threegen.login.AuthViewModel
 import com.example.threegen.util.MemberState
+import com.example.threegen.util.MyTopAppBar
 import kotlinx.coroutines.FlowPreview
 
 @OptIn(FlowPreview::class) // ✅ Opt-in for debounce
@@ -33,9 +35,25 @@ fun SelectMemberSpouseScreen(
     navController: NavHostController,
     viewModel: ThreeGenViewModel,
     modifier: Modifier = Modifier,
+    authViewModel: AuthViewModel,
     //onSpouseSelected: (ThreeGen) -> Unit
 ) {
-    //Log.d("selectMember", "SelectMember screen started")
+
+
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
+
+    Scaffold(
+        topBar = { MyTopAppBar("Select Spouse",navController, authViewModel, "ListScreen") },
+        snackbarHost = { SnackbarHost(snackbarHostState) } // Manages snackbars
+    ) { paddingValues ->
+        SelectMemberSpouseScreenContent(paddingValues, navController, viewModel)
+    }
+}
+
+@Composable
+fun SelectMemberSpouseScreenContent(paddingValues: PaddingValues, navController: NavHostController, viewModel: ThreeGenViewModel) {
+
     LaunchedEffect(Unit) {
         viewModel.fetchMembers() // ✅ Fetch members when screen loads
     }
@@ -45,17 +63,27 @@ fun SelectMemberSpouseScreen(
     var selectedImageUri by remember { mutableStateOf<String?>(null) }
 
 
-    Column(
-        modifier = modifier.fillMaxSize().padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        // Screen Title
-        Text(
-            text = "Select Spouse",
-            style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold)
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
+    Column(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
+        // Option Buttons Group
+        val searchOptions = listOf("FirstName", "ShortName", "NoFilter")
+        var selectedSearchOption by remember { mutableStateOf("FirstName") }
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceEvenly, modifier = Modifier
+            .fillMaxWidth()
+            .padding(2.dp)) {
+            searchOptions.forEach { option ->
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 2.dp)) {
+                    RadioButton(
+                        selected = (selectedSearchOption == option),
+                        onClick = { selectedSearchOption = option } // Update selected option
+                    )
+                    Text(
+                        text = option,
+                        fontSize = 9.sp,
+                        modifier = Modifier.padding(start = 2.dp)
+                    )
+                }
+            }
+        } // searchOptions
 
         // Search Field
         OutlinedTextField(
@@ -76,10 +104,10 @@ fun SelectMemberSpouseScreen(
             is MemberState.Empty -> {Text(text = "No members found", color = Color.Gray, modifier = Modifier.padding(16.dp)) }
             is MemberState.Success -> { Text(text = "Wrong member State for List its for single member", color = Color.Gray, modifier = Modifier.padding(16.dp))}
             is MemberState.SuccessList -> {
-                val filteredMembers = if (searchQuery.isBlank()) {
-                    state.members // ✅ Show all members when search is empty
-                } else {
-                    state.members.filter { it.shortName.contains(searchQuery, ignoreCase = true) }
+                val filteredMembers = when (selectedSearchOption){
+                    "FirstName" -> state.members.filter { it.firstName.startsWith(searchQuery, ignoreCase = true) }
+                    "ShortName" -> state.members.filter { it.shortName.startsWith(searchQuery, ignoreCase = true) }
+                    else -> state.members
                 }
 
                 if (filteredMembers.isEmpty()) {
@@ -104,10 +132,6 @@ fun SelectMemberSpouseScreen(
                     }
                 }
             }
-
-            else -> {
-                Text(text = "Unexpected state", color = Color.Red, modifier = Modifier.padding(16.dp))
-            }
         }
     }
 
@@ -119,47 +143,37 @@ fun SelectMemberSpouseScreen(
 
 // ✅ Member list item UI
 @Composable
-fun SelectMemberSpouseListItem(
-    member: ThreeGen,
-    onItemClick: () -> Unit,
-    onImageClick: (String) -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onItemClick() }
-            .padding(vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        if (!member.imageUri.isNullOrEmpty()) {
-            Image(
-                painter = rememberAsyncImagePainter(member.imageUri),
-                contentDescription = "Profile Image",
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .size(56.dp)
-                    .clip(CircleShape)
-                    .clickable { onImageClick(member.imageUri!!) }
-            )
-        } else {
-            Icon(
-                imageVector = Icons.Default.Person,
-                contentDescription = "No Profile Image",
-                modifier = Modifier.size(56.dp).clip(CircleShape),
-                tint = Color.Gray
-            )
+fun SelectMemberSpouseListItem(member: ThreeGen, onItemClick: () -> Unit, onImageClick: (String) -> Unit) {
+    Card(modifier = Modifier.fillMaxWidth()
+        .clickable { onItemClick() }
+        .padding(start = 12.dp, end = 12.dp, top = 6.dp, bottom = 6.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+    )
+    {
+        // display image
+        Row(modifier = Modifier.padding(start = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            if (!member.imageUri.isNullOrEmpty())
+            {
+                Image(painter = rememberAsyncImagePainter(member.imageUri), contentDescription = "Profile Image", contentScale = ContentScale.Crop, modifier = Modifier.size(56.dp).clip(CircleShape)
+                    .clickable { onImageClick(member.imageUri!!) })
+            } else {
+                Icon(imageVector = Icons.Default.Person, contentDescription = "No Profile Image", modifier = Modifier.size(56.dp).clip(CircleShape), tint = Color.Gray)
+            } // display image
+            Column(modifier = Modifier.padding(start = 8.dp))
+            {
+                Text(text = "id: ${member.id}", fontSize = 7.5.sp)
+                Text(text = "Short Name: ${member.shortName}", fontSize = 12.sp)
+            } // display shortname, id
         }
-
-        Spacer(modifier = Modifier.width(12.dp))
-
-        Column {
-            Text(
-                text = "${member.firstName} ${member.middleName} ${member.lastName}",
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold
-            )
-            Text(text = "Town: ${member.town}", fontSize = 12.sp)
-            Text(text = "Short Name: ${member.shortName}", fontSize = 12.sp)
+        Row(modifier = Modifier.padding(start = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+            // ✅ Member details
+            Column(modifier = Modifier.padding(start = 4.dp, end = 4.dp))
+            {
+                val isAlive = if (member.isAlive) "" else " (Late)"
+                val childNumber = " (Child# ${member.childNumber.toString()})"
+                Text(text = "${member.firstName} ${member.middleName} ${member.lastName} $isAlive", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                Text(text = "${member.town}, $childNumber", fontSize = 12.sp)
+            } // displays fullname, town, shortname
         }
     }
 }
