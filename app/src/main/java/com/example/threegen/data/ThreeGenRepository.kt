@@ -6,6 +6,7 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.asLiveData
 import com.example.threegen.util.SyncPreferences
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -283,6 +284,18 @@ class ThreeGenRepository(private val threeGenDao: ThreeGenDao) {
         }
     }
 
+ /*   suspend fun uploadImageToFirebaseStorage(
+        context: Context,
+        uri: Uri,
+        memberId: String
+    ): String = withContext(Dispatchers.IO) {
+        val storage = Firebase.storage
+        val storageRef = storage.reference.child("profile_images/${memberId}.jpg")
+
+        val uploadTask = storageRef.putFile(uri).await()
+        storageRef.downloadUrl.await().toString()
+    }
+*/
     /**
      * ✅ Syncs a `ThreeGen` member to Firestore, including all fields.
      * Updates the local Room sync status and `updatedAt` timestamp upon successful Firestore sync.
@@ -418,7 +431,20 @@ class ThreeGenRepository(private val threeGenDao: ThreeGenDao) {
 
                 // 🔥 Step 1: Insert all members WITHOUT relationships
                 val membersWithoutRelationships = members.map { member ->
-                    member.copy(parentID = null, spouseID = null)  // Temporarily remove relationships
+                    val imageUriRaw = member.imageUri ?: ""
+                    val correctedGsUri = imageUriRaw.replace("firebasestorage.app", "appspot.com")
+                    Log.d("Repository", "imageUriRaw: $imageUriRaw")
+                    val fixedImageUri = if (correctedGsUri.startsWith("gs://"))
+                    {
+                        try {
+                            convertGsUriToDownloadUrl(imageUriRaw)
+                        } catch (e: Exception) {
+                            Log.e("Repository", "⚠️ Failed to convert imageUri: ${e.message}")
+                            ""
+                        }
+                    } else imageUriRaw
+                    Log.d("Repository", "fixedImageUri: $fixedImageUri")
+                    member.copy(parentID = null, spouseID = null, imageUri = fixedImageUri)  // Temporarily remove relationships
                 }
                 //threeGenDao.insertOrUpdateMembers(membersWithoutRelationships)
                 val insertedRowIds = threeGenDao.insertOrUpdateMembers(membersWithoutRelationships)
@@ -535,5 +561,12 @@ class ThreeGenRepository(private val threeGenDao: ThreeGenDao) {
             Log.e("Repository", "❌ From Repository.updateRelationshipsInRoom: Relationship update failed: ${e.message}", e)
         }
     }
+    private suspend fun convertGsUriToDownloadUrl(gsUri: String): String {
+        val storage = FirebaseStorage.getInstance()
+        val path = gsUri.removePrefix("gs://threegen-b5677.appspot.com/")
+        val ref = storage.reference.child(path)
+        return ref.downloadUrl.await().toString()
+    }
+
     //-------- Firestore-->Room ends
 }

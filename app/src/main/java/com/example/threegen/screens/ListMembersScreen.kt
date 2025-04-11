@@ -182,6 +182,7 @@ fun MemberListItem(member: ThreeGen, onItemClick: () -> Unit, onImageClick: (Str
     )
     {
         // display image
+        Log.d("ImageURI", "URI: ${member.imageUri}")
         Row(modifier = Modifier.padding(start = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             if (!member.imageUri.isNullOrEmpty())
             {
