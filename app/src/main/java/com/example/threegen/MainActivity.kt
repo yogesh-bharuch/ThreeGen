@@ -93,7 +93,7 @@ class MainActivity : ComponentActivity() {
                         viewModel.isSyncedInSession = false
                         if (!viewModel.isSyncedInSession) {
                             //Log.d("FirestoreSync", "From Mainactivity.LaunchedEffect schedulePeriodicSync jobs issued to WorkManagerHelper")
-                            WorkManagerHelper.schedulePeriodicSync(context, timeIntervalInMinutes = 15, lastSyncTime = lastSyncTime, currentUserId = currentUserId)
+                            WorkManagerHelper.schedulePeriodicSync(context, timeIntervalInMinutes = 720, lastSyncTime = lastSyncTime, currentUserId = currentUserId)
                         }
                         viewModel.isSyncedInSession = true
                     }

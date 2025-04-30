@@ -15,6 +15,9 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.delay
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class ThreeGenRepository(private val threeGenDao: ThreeGenDao) {
     // Singleton instance
@@ -97,6 +100,15 @@ class ThreeGenRepository(private val threeGenDao: ThreeGenDao) {
         // after delete in firestore delete logic to be developed
         //WorkManagerHelper.scheduleImmediateSync(context)
     //threeGenDao.deleteThreeGen(member.id)
+    }
+
+    suspend fun removeParentRef(threeGenId: String) {
+        Log.d("ThreeGenViewModel", "Removing parent with from Repository ID : $threeGenId")
+        threeGenDao.removeParentRef(threeGenId)
+    }
+    suspend fun removeSpouseRef(threeGenId: String) {
+        Log.d("ThreeGenViewModel", "Removing spouse with from Repository ID : $threeGenId")
+        threeGenDao.removeSpouseRef(threeGenId)
     }
 
     suspend fun getUnsyncedMembers(): List<ThreeGen> {
@@ -481,9 +493,13 @@ class ThreeGenRepository(private val threeGenDao: ThreeGenDao) {
             } else {
                 collectionRef  // First-time sync: fetch all members
             }*/
+            val lastSyncTimeRetrived = SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.getDefault()).format(Date(lastSyncTime))
+
+            Log.d("Repository", "✅ From Repository.syncFirestoreToRoom: isFirstRun = $isFirstRun lastSyncTime: $lastSyncTimeRetrived")
             val query = if (!isFirstRun || lastSyncTime > 0) {
                 collectionRef
                     .whereGreaterThan("updatedAt", lastSyncTime)
+
             } else {
                 Log.d("FirestoreSync", "✅ From Repository.syncFirestoreToRoom: isFirstRun = true or Manual Sync")
                 collectionRef  // First-time sync: fetch all members
@@ -514,7 +530,7 @@ class ThreeGenRepository(private val threeGenDao: ThreeGenDao) {
                         createdBy = doc.getString("createdBy") ?: "Unknown"
                     )
                 }
-                // Log.d("Repository.syncFirestoreToRoom", "✅ From Repository.fetchModifiedFirestoreMembers members: ${members.size} fetched")
+                //Log.d("Repository.syncFirestoreToRoom", "✅ From Repository.fetchModifiedFirestoreMembers members: ${members.size} fetched")
                 members
             } else {
                 Log.d("Repository.syncFirestoreToRoom", "✅ From Repository.syncFirestoreToRoom No modified members found since last sync")

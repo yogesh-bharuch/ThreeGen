@@ -288,6 +288,15 @@ class ThreeGenViewModel(
         }
     }
 
+    suspend fun removeParentRef(threeGenId: String) {
+        Log.d("ThreeGenViewModel", "Removing parent with ID: $threeGenId")
+        repository.removeParentRef(threeGenId)
+    }
+    suspend fun removeSpouseRef(threeGenId: String) {
+        Log.d("ThreeGenViewModel", "Removing Spouse with ID: $threeGenId")
+        repository.removeSpouseRef(threeGenId)
+    }
+
     // ✅ Generates a unique short name
     private suspend fun generateUniqueShortName(firstName: String, middleName: String, lastName: String, town: String): String {
         val initials = "${firstName.first()}${middleName.first()}${lastName.first()}${town.first()}".uppercase()

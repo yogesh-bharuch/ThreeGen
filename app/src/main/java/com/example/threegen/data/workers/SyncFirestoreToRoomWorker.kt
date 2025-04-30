@@ -39,11 +39,12 @@ class SyncFirestoreToRoomWorker(
     }
 
     override suspend fun doWork(): Result {
-        val syncTime = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
+        val syncTime = SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.getDefault()).format(Date())
         // ✅ Read the sync parameters from SharedPreferences
         val (lastSyncTime, currentUserId) = getSyncParams(applicationContext)
+        val lastSyncTimeRetrived = SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.getDefault()).format(Date(lastSyncTime))
 
-        Log.d("SyncFirestoreToRoomWorker", "📅 From SyncFirestoreToRoomWorker: Firestore-> local sync Started at : $syncTime, LastSync Time: $lastSyncTime, User ID: $currentUserId")
+        Log.d("SyncFirestoreToRoomWorker", "📅 From SyncFirestoreToRoomWorker: Firestore-> local sync Started at : $syncTime, LastSync Time: $lastSyncTimeRetrived, User ID: $currentUserId")
         // 📅 From SyncLocalToFirestoreWorker: Local-> firestore sync Started at : $syncTime, LastSync Time: $lastSyncTime, User ID: $currentUserId
         var resultMmessage = "?..."
         return try {
@@ -55,7 +56,7 @@ class SyncFirestoreToRoomWorker(
                     val date = Date(lastSyncTime) // Convert timestamp to Date object
                     val formattedTime = DateFormat.getTimeInstance(DateFormat.MEDIUM).format(date) //SimpleDateFormat("HH:mm:ss").format(date)
 
-                    Log.d("FirestoreSync", "✅ From SyncFirestoreToRoomWorker.dowork : \n Periodic Sync completed lastsync($lastSyncTime) → Time: $formattedTime, \n User ID: $currentUserId \n at: $newSyncTime → $message")
+                    Log.d("FirestoreSync", "✅ From SyncFirestoreToRoomWorker.dowork : \n Periodic Sync completed lastsync: $lastSyncTimeRetrived, \n User ID: $currentUserId \n at: $newSyncTime → $message")
                 }
             }
 

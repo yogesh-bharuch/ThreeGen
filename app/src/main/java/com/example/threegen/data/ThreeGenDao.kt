@@ -50,6 +50,10 @@ interface ThreeGenDao {
 """)
     suspend fun updateRelationships(id: String, parentID: String?, spouseID: String?)
 
+    @Query("UPDATE three_gen_table SET parentid = null WHERE parentid = :threeGenId")
+    suspend fun removeParentRef(threeGenId: String)
+    @Query("UPDATE three_gen_table SET spouseid = null WHERE spouseid = :threeGenId")
+    suspend fun removeSpouseRef(threeGenId: String)
 
     /**
      * **Upserts** (Insert or Update) a member into the database.

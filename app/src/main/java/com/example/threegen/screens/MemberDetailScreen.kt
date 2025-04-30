@@ -73,6 +73,10 @@ import com.example.threegen.data.workers.WorkManagerHelper
 import com.example.threegen.login.AuthViewModel
 import com.example.threegen.util.MyTopAppBar
 import com.example.threegen.util.formatDateTime
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @Composable
 fun MemberDetailScreen(
@@ -272,7 +276,8 @@ fun ImageOverlay(imageUri: String, onClose: () -> Unit) {
 
 // ✅ Profile Image Handling
 @Composable
-fun AddImage(member: ThreeGen, imageUri: String?, onImageClick: (String) -> Unit, onImageUriChange: (String) -> Unit) {
+fun AddImage(member: ThreeGen, imageUri: String?, onImageClick: (String) -> Unit, onImageUriChange: (String) -> Unit)
+{
     val imagePickerLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         uri?.toString()?.let {
             onImageUriChange(it) // ✅ Pass updated URI to parent
@@ -479,11 +484,19 @@ fun DeleteButton(member: ThreeGen, viewModel: ThreeGenViewModel, navController: 
             title = { Text("Confirm Delete") },
             confirmButton = {
                 Button(onClick = {
-                    viewModel.markAsDeletedMember(member.id)
-                    navController.popBackStack()
-                    showDialog = false
-                    SnackbarManager.showMessage("Successfully marked as deleted ")
-                    WorkManagerHelper.immediateSync(context)
+                    // Launch a coroutine
+                    CoroutineScope(Dispatchers.IO).launch {
+                        //viewModel.removeParentRef(member.id)
+                        //viewModel.removeSpouseRef(member.id)
+                        viewModel.markAsDeletedMember(member.id)
+                        // Switch to the main thread for UI updates
+                        withContext(Dispatchers.Main) {
+                            navController.popBackStack()
+                            showDialog = false
+                            SnackbarManager.showMessage("Successfully marked as deleted ")
+                            WorkManagerHelper.immediateSync(context)
+                        }
+                    }
                     //Toast.makeText(context, "Member deleted", Toast.LENGTH_SHORT).show()
                 }) { Text("Yes, Delete") }
             },
