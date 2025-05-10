@@ -10,7 +10,7 @@ import androidx.room.migration.Migration
  * - Contains a single entity: `ThreeGen`
  * - Supports database versioning with migration logic.
  */
-@Database(entities = [ThreeGen::class], version = 3, exportSchema = false)  // 🔥 Updated to version 3
+@Database(entities = [ThreeGen::class], version = 3, exportSchema = true)  // 🔥 Updated to version 3
 abstract class ThreeGenDatabase : RoomDatabase() {
 
     // DAO to interact with ThreeGen table
