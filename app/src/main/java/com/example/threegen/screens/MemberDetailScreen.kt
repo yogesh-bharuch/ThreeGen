@@ -1,5 +1,6 @@
 package com.example.threegen.screens
 
+import android.content.Context
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -72,6 +73,7 @@ import com.example.threegen.util.SnackbarManager
 import com.example.threegen.data.workers.WorkManagerHelper
 import com.example.threegen.login.AuthViewModel
 import com.example.threegen.util.MyTopAppBar
+import com.example.threegen.util.copyToInternalStorage
 import com.example.threegen.util.formatDateTime
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -147,7 +149,7 @@ fun MemberDetailScreenContent(paddingValues: PaddingValues, memberId: String, na
                             item {
                                 Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically)
                                 {
-                                    AddImage(member, editableMember.value.imageUri ?: "", onImageClick = { zoomedImageUri = it }, onImageUriChange = { uri -> editableMember.value = editableMember.value.copy(imageUri = uri) })
+                                    AddImage(member, editableMember.value.imageUri ?: "", context, onImageClick = { zoomedImageUri = it }, onImageUriChange = { uri -> editableMember.value = editableMember.value.copy(imageUri = uri) })
                                     Spacer(modifier = Modifier.width(16.dp))
                                     EditableMemberDetails(
                                         firstName = editableMember.value.firstName, onFirstNameChange = { editableMember.value = editableMember.value.copy(firstName = it) },
@@ -276,11 +278,14 @@ fun ImageOverlay(imageUri: String, onClose: () -> Unit) {
 
 // ✅ Profile Image Handling
 @Composable
-fun AddImage(member: ThreeGen, imageUri: String?, onImageClick: (String) -> Unit, onImageUriChange: (String) -> Unit)
+fun AddImage(member: ThreeGen, imageUri: String?, context: Context, onImageClick: (String) -> Unit, onImageUriChange: (String) -> Unit)
 {
-    val imagePickerLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+    val imagePickerLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()
+    ) { uri ->
         uri?.toString()?.let {
-            onImageUriChange(it) // ✅ Pass updated URI to parent
+            val imageFile = copyToInternalStorage(context, uri, member.id, 500, 500) ?: ""
+            onImageUriChange(imageFile) // ✅ Pass updated URI to parent
+            //onImageUriChange(it) // ✅ Pass updated URI to parent
         }
     }
 

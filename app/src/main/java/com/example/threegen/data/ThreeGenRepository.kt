@@ -1,10 +1,14 @@
 package com.example.threegen.data
 
 import android.content.Context
+import android.net.Uri
 import android.util.Log
+import android.widget.Toast
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.asLiveData
+import com.example.threegen.util.DebugTags
 import com.example.threegen.util.SyncPreferences
+import com.example.threegen.util.isInternetAvailable
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.Dispatchers
@@ -585,4 +589,63 @@ class ThreeGenRepository(private val threeGenDao: ThreeGenDao) {
     }
 
     //-------- Firestore-->Room ends
+
+    /*suspend fun syncRoomToFirestore(context: Context){
+        if (!isInternetAvailable(context)) {
+            withContext(Dispatchers.Main) {
+                Toast.makeText(context, "❌ No internet connection. Sync aborted.", Toast.LENGTH_SHORT).show()
+            }
+            Log.d(DebugTags.SYNC_FIRESTORE, "❌ No internet connection. Sync aborted. From UserRepository.syncRoomToFirestore")
+            return
+        }
+
+        // 🔹 Run database queries in IO dispatcher to avoid blocking the main thread
+        val deletedRoomUsers = withContext(Dispatchers.IO) { //userDao.getRoomDeletedUsers() }
+        val unsyncedRoomUsers = withContext(Dispatchers.IO) { //userDao.getRoomUnsyncedUsers() }
+
+        // 🔹 Now, logging will only execute once both queries have completed
+        //Log.d(DebugTags.SYNC_FIRESTORE, "📦 Local->Firestore Found ${deletedRoomUsers.size} deleted user(s) to sync.  From UserRepository.syncRoomUnsyncedUsers")
+        //Log.d(DebugTags.SYNC_FIRESTORE, "📦 Local->Firestore Found ${unsyncedRoomUsers.size} unsynced user(s) to sync.  From UserRepository.syncRoomUnsyncedUsers")
+
+        //----Syncing Room->Firestore deleted users-------------
+        *//*for (user in deletedRoomUsers) {
+            val success = firestoreService.markFirestoreUserAsDeleted(user) // Then sync deletion to Firestore
+
+            if (success){
+                userDao.deleteRoomUser(user.id) // ✅ Permanently deleted locally
+                Log.d(DebugTags.SYNC_FIRESTORE, "🗑️ User ${user.firstName} deleted Permanently in Room. From UserRepository.syncRoomToFirestore")
+            } else {
+                Toast.makeText(context, "Error deleting user from Firestore", Toast.LENGTH_SHORT).show()
+            }
+        }
+        //----Syncing Room->Firestore deleted users-------------
+
+        //----Syncing Room->Firestore updated/inserted users-------------
+        for (user in unsyncedRoomUsers) {
+            val updatedUser = uploadImageToFireStore(user)
+            syncRoomUserToFirestore(updatedUser)
+        }*//*
+        //----Syncing Room->Firestore updated/inserted users-------------
+
+        // ✅ Delete all local files once sync is complete from internal storage /data/data/com.yourapp/files/profile_images folder
+        // as not required after syn. These files were store temporarily to display from Room before uploading to Firestore
+        deleteAllLocalFiles(context)
+    }
+
+    // 🔹 Resize & upload image only if profileImageUri exists and is NOT already a valid URL
+    private suspend fun uploadImageToFireStore(user: User): User {
+        return if (!user.profileImageUri.isNullOrEmpty() && !user.profileImageUri.contains("https")) {
+            val imageUri = Uri.parse(user.profileImageUri)
+            val resizedImageUrl = firestoreService.uploadResizedImageAndGetUrl(imageUri, user.id, 500, 500)
+
+            if (resizedImageUrl.isEmpty()) {
+                Log.d(DebugTags.SYNC_FIRESTORE, "❌ Image not available to upload for user ${user.id}. Proceeding with Firestore sync anyway.")
+                user
+            } else {
+                user.copy(profileImageUri = resizedImageUrl)
+            }
+        } else {
+            user
+        }
+    }*/
 }

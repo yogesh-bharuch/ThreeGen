@@ -202,6 +202,8 @@ class ThreeGenViewModel(
             val newMember = ThreeGen(id = newUUID, firstName = formattedFirstName, middleName = formattedMiddleName, lastName = formattedLastName, town = formattedTown, shortName = uniqueShortName, imageUri = imageUri, parentID = parentID, spouseID = spouseID, createdAt = System.currentTimeMillis(), syncStatus = SyncStatus.NOT_SYNCED, childNumber = childNumber, comment = comment, createdBy = currentUserId)
             val insertedRows = repository.addThreeGen(newMember)
 
+            //TODO sync to firestore
+
             // ✅ If spouseID exists, update the spouse's record with the new member's ID
             if (!spouseID.isNullOrBlank()) {
                 val spouse = repository.getMemberByIdSync(spouseID)
