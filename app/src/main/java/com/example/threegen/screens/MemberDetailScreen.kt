@@ -161,7 +161,7 @@ fun MemberDetailScreenContent(paddingValues: PaddingValues, memberId: String, na
                                 }
                             } // ✅ AddImage, Editable Member Details
                             item {
-                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween)
+                                Row(modifier = Modifier.fillMaxWidth(),  horizontalArrangement = Arrangement.SpaceBetween)
                                 {
                                     Text(text = "Created At: ${formatDateTime(member.createdAt)}", fontSize = 8.sp)
                                     Text(text = "Short Name: ${member.shortName}", fontSize = 8.sp, fontWeight = FontWeight.Bold)
